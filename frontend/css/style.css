@@ -370,10 +370,6 @@ body {
   background: var(--accent-light);
 }
 
-.upload-zone-small {
-  padding: 20px 16px;
-}
-
 .upload-zone-placeholder {
   color: var(--text-muted);
 }
@@ -445,89 +441,41 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* === Report Builder Findings === */
-.findings-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.finding-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--primary-light);
-  border-radius: 20px;
-  font-size: 13px;
-  color: var(--primary);
-}
-
-.finding-item .remove-finding {
-  background: none;
-  border: none;
-  color: var(--primary);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  opacity: 0.6;
-  padding: 0 0 0 2px;
-}
-
-.finding-item .remove-finding:hover {
-  opacity: 1;
-  color: var(--error);
-}
-
-.add-finding-row {
-  display: flex;
-  gap: 8px;
-}
-
-.add-finding-row .input {
-  flex: 1;
-}
-
-/* === Suggestions === */
-.suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.suggestion-chip {
-  padding: 5px 12px;
-  background: var(--accent-light);
-  color: var(--accent);
-  border: none;
-  border-radius: 20px;
-  font-size: 12px;
-  font-family: var(--font);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.suggestion-chip:hover {
-  background: #B2DFDB;
-}
-
-/* === Generated Report === */
-.generated-report {
-  background: var(--surface);
+/* === Chat Report Display === */
+.chat-report {
+  background: #F8F9FB;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
-  margin-top: 16px;
-  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-.generated-report h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary);
-  margin-bottom: 12px;
+.chat-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--primary-light);
+}
+
+.chat-report-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 12px;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.chat-sources {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .report-content {

@@ -1,4 +1,4 @@
-// Chat module — conversational radiology Q&A with term lookup
+// Chat module — unified radiology assistant (queries, lookups, reports)
 const Chat = (() => {
   let history = [];
   const MAX_HISTORY = 50;
@@ -39,12 +39,13 @@ const Chat = (() => {
     if (quickActions) quickActions.classList.add('hidden');
 
     if (GREETINGS.test(text)) {
-      const greeting = 'Hello! I\'m RadAssist, your AI radiology assistant. You can:\n\n' +
-        '- Ask about any **radiology term** (e.g. "pneumothorax")\n' +
-        '- Ask **clinical questions** (e.g. "What causes pleural effusion?")\n' +
-        '- Request a **report** using the Report Builder tab\n' +
-        '- **Upload an X-ray** in the Image Analysis tab\n\n' +
-        'Try typing a condition name or asking a question!';
+      const greeting = 'Hello! I\'m RadAssist, your AI radiology assistant. I can help you with:\n\n' +
+        '- **Radiology questions** (e.g. "What causes pleural effusion?")\n' +
+        '- **Term lookups** (e.g. "pneumothorax")\n' +
+        '- **Report generation** (e.g. "Generate a chest X-ray report with bilateral pleural effusions")\n' +
+        '- **Differential diagnoses** and clinical correlation\n\n' +
+        'You can also upload X-rays in the Image Analysis tab.\n\n' +
+        'Try typing a question, term, or report request!';
       appendMessage('assistant', greeting);
       history.push({ role: 'user', content: text });
       history.push({ role: 'assistant', content: greeting });
@@ -55,17 +56,12 @@ const Chat = (() => {
 
     const typingEl = showTypingIndicator();
 
-    const wordCount = text.split(/\s+/).length;
-    const isTermLookup = wordCount <= 3 && !text.includes('?');
-
-    const apiCall = isTermLookup
-      ? API.lookup(text)
-      : API.query(text, {});
-
-    apiCall.then(result => {
+    API.chat(text).then(result => {
       removeTypingIndicator(typingEl);
 
-      if (typeof result === 'object' && (result.keywords || result.findings || result.differentials)) {
+      if (typeof result === 'object' && result.type === 'report' && result.report) {
+        appendReportMessage(result.report);
+      } else if (typeof result === 'object' && (result.keywords || result.findings || result.differentials)) {
         appendRichMessage(result);
       } else if (typeof result === 'object' && result.result) {
         appendMessage('assistant', result.result);
@@ -141,8 +137,40 @@ const Chat = (() => {
       html += `<div class="chat-suggestion">${escapeHtml(suggestion)}</div>`;
     }
 
+    if (result.sources) {
+      html += `<div class="chat-sources"><small>Sources: ${escapeHtml(result.sources)}</small></div>`;
+    }
+
     html += '</div>';
     msgEl.innerHTML = html;
+
+    container.appendChild(msgEl);
+    scrollToBottom();
+  }
+
+  function appendReportMessage(reportText) {
+    const container = document.getElementById('chat-messages');
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-message assistant';
+    msgEl.innerHTML = `
+      <div class="chat-avatar">RA</div>
+      <div class="chat-bubble">
+        <div class="chat-report">
+          <div class="chat-report-header">
+            <strong>Generated Report</strong>
+            <button class="btn btn-secondary btn-small copy-report-chat" title="Copy">Copy</button>
+          </div>
+          <pre class="chat-report-text">${escapeHtml(reportText)}</pre>
+        </div>
+      </div>
+    `;
+
+    msgEl.querySelector('.copy-report-chat').addEventListener('click', function() {
+      navigator.clipboard.writeText(reportText).then(() => {
+        this.textContent = 'Copied!';
+        setTimeout(() => { this.textContent = 'Copy'; }, 2000);
+      });
+    });
 
     container.appendChild(msgEl);
     scrollToBottom();
@@ -224,7 +252,9 @@ const Chat = (() => {
           if (quickActions) quickActions.classList.add('hidden');
         } else if (msg.role === 'assistant') {
           const content = msg.content;
-          if (typeof content === 'object' && (content.keywords || content.findings || content.differentials)) {
+          if (typeof content === 'object' && content.type === 'report' && content.report) {
+            appendReportMessage(content.report);
+          } else if (typeof content === 'object' && (content.keywords || content.findings || content.differentials)) {
             appendRichMessage(content);
           } else if (typeof content === 'object' && content.result) {
             appendMessage('assistant', content.result);

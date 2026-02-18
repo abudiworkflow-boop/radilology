@@ -16,7 +16,6 @@ const ImageAnalysis = (() => {
 
     document.getElementById('analyze-btn').addEventListener('click', analyzeImage);
     document.getElementById('copy-analysis-btn').addEventListener('click', copyReport);
-    document.getElementById('send-to-report-btn').addEventListener('click', sendToReportBuilder);
   }
 
   function updateAnalyzeButton() {
@@ -79,28 +78,6 @@ const ImageAnalysis = (() => {
       btn.textContent = 'Copied!';
       setTimeout(() => { btn.textContent = 'Copy Report'; }, 2000);
     });
-  }
-
-  function sendToReportBuilder() {
-    const modality = document.getElementById('analysis-modality').value;
-    const bodyPart = document.getElementById('analysis-bodypart').value;
-    const clinicalContext = document.getElementById('analysis-clinical').value;
-    const report = document.getElementById('analysis-report-text').textContent;
-
-    const findingsEl = document.getElementById('analysis-findings-list');
-    const findings = Array.from(findingsEl.querySelectorAll('li')).map(li => li.textContent);
-
-    if (typeof ReportBuilder !== 'undefined' && ReportBuilder.prefill) {
-      ReportBuilder.prefill({
-        modality,
-        bodyPart,
-        clinicalHistory: clinicalContext,
-        findings,
-        report,
-      });
-    }
-
-    document.querySelector('[data-tab="report"]').click();
   }
 
   function showLoading(show) {

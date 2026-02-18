@@ -1,5 +1,5 @@
 {
-  "name": "RadAssist — Master Workflow",
+  "name": "RadAssist — Master Workflow v2",
   "nodes": [
     {
       "id": "b1000001-0001-4000-8000-000000000001",
@@ -80,38 +80,23 @@
       },
       "typeVersion": 2
     },
-    {
-      "id": "b1000001-9006-4000-8000-000000000001",
-      "name": "Image Analysis Branch",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [320, -120],
-      "parameters": {
-        "width": 700,
-        "height": 280,
-        "content": "### Branch 0: Image Analysis (GPT-4o Vision)\nHTTP Request to OpenAI Chat Completions with image_url\nReturns: { type, report, findings, impression, recommendations }"
-      },
-      "typeVersion": 1
-    },
+
     {
       "id": "b1000001-0002-4000-8000-000000000001",
       "name": "Route Request",
       "type": "@n8n/n8n-nodes-langchain.textClassifier",
       "position": [400, 400],
       "parameters": {
-        "inputText": "={{ $json.body.message || $json.body.query || $json.body.term || 'Generate radiology report for ' + ($json.body.modality || '') + ' ' + ($json.body.body_part || '') }}",
+        "inputText": "={{ $json.body.message || $json.body.query || $json.body.term || '' }}",
         "categories": {
           "categories": [
             {
-              "category": "Radiology Query",
-              "description": "User is asking a medical or radiology question, seeking information about imaging findings, pathologies, differentials, or clinical conditions. Contains a question or search query about radiology topics."
+              "category": "Radiology Chat",
+              "description": "User is asking a medical or radiology question, seeking information about imaging findings, pathologies, differentials, clinical conditions, or looking up a specific radiology or medical term. Includes questions, search queries, simple term lookups, and clinical correlation requests."
             },
             {
               "category": "Report Generation",
-              "description": "User wants to generate or create a structured radiology report. They provide specific imaging findings, modality, body part, and clinical history. The request is about writing or formatting a medical report."
-            },
-            {
-              "category": "Term Lookup",
-              "description": "User wants a quick definition or explanation of a specific radiology or medical term, concept, sign, or condition. Simple factual lookup, not a complex question."
+              "description": "User explicitly wants to generate, create, or write a structured radiology report. They provide specific imaging findings, modality, body part, and/or clinical history. The request is specifically about producing a formatted medical report document."
             }
           ]
         },
@@ -138,24 +123,24 @@
     },
 
     {
-      "id": "b1000001-0010-4000-8000-000000000001",
-      "name": "Query Agent",
+      "id": "c2000001-0001-4000-8000-000000000001",
+      "name": "Chat Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
-      "position": [800, 0],
+      "position": [800, 200],
       "parameters": {
         "promptType": "define",
-        "text": "=Radiology Query: {{ $json.body.message || $json.body.query }}\n\nFilters:\n- Modality: {{ $json.body.modality || 'all' }}\n- Body System: {{ $json.body.system || 'all' }}\n\nSearch the radiology knowledge base for relevant information and provide your analysis based ONLY on the knowledge base results.",
+        "text": "=Radiology question: {{ $json.body.message || $json.body.query || $json.body.term }}\n\nFilters:\n- Modality: {{ $json.body.modality || 'all' }}\n- Body System: {{ $json.body.system || 'all' }}\n\nStep 1: Search the Radiology Knowledge Base (Pinecone) for curated, precise information.\nStep 2: If the knowledge base provides limited or incomplete information, use Perplexity Web Search to find additional context, latest research, or verification.\nStep 3: Synthesize both sources into a comprehensive response. Always prioritize Pinecone data as the primary source.",
         "options": {
-          "systemMessage": "You are RadAssist, an expert AI radiology assistant helping radiologists and medical professionals.\n\nWhen responding to queries:\n1. ALWAYS search the Radiology Knowledge Base using the tool\n2. Base your response ONLY on information found in the knowledge base\n3. If the knowledge base has limited information, clearly state that and provide what is available\n\nYour response MUST be a valid JSON object with exactly these fields (no markdown, no code fences, just raw JSON):\n{\n  \"keywords\": [\"relevant\", \"radiology\", \"terms\"],\n  \"findings\": \"Detailed description of key imaging findings\",\n  \"differentials\": [\"Most likely diagnosis\", \"Second most likely\", \"Third\"],\n  \"report_suggestion\": \"Suggested radiology report language\"\n}\n\nGuidelines:\n- Keywords: 3-8 relevant radiology terms from the knowledge base\n- Findings: describe imaging characteristics, patterns, and clinical significance\n- Differentials: ordered by likelihood, include 3-6 options\n- Report suggestion: use standard radiology reporting language (RSNA style)\n- ONLY output the raw JSON object, nothing else"
+          "systemMessage": "You are RadAssist, an expert AI radiology assistant.\n\nDATA SOURCE PRIORITY:\n1. PRIMARY: Always search the Radiology Knowledge Base (Pinecone) FIRST. This contains curated, verified radiology data (3,281 documents).\n2. SUPPLEMENTARY: Use Perplexity Web Search ONLY when:\n   - The knowledge base has limited information on the topic\n   - You need to verify or cross-reference findings\n   - The user asks about very recent research or guidelines\n   - Additional clinical context would be valuable\n\nRESPONSE FORMAT - Your response MUST be a valid JSON object (no markdown, no code fences):\n{\n  \"keywords\": [\"relevant\", \"radiology\", \"terms\"],\n  \"findings\": \"Detailed description of key imaging findings\",\n  \"differentials\": [\"Most likely diagnosis\", \"Second most likely\", \"Third\"],\n  \"report_suggestion\": \"Suggested radiology report language\",\n  \"sources\": \"pinecone\" or \"pinecone+perplexity\"\n}\n\nGuidelines:\n- Keywords: 3-8 relevant radiology terms\n- Findings: describe imaging characteristics, patterns, and clinical significance\n- Differentials: ordered by likelihood, include 3-6 options\n- Report suggestion: use RSNA-style radiology language\n- Sources: indicate which data sources contributed to the response\n- ONLY output the raw JSON object, nothing else"
         }
       },
       "typeVersion": 1.9
     },
     {
-      "id": "b1000001-0010-4000-8000-000000000002",
-      "name": "GPT-4o (Query)",
+      "id": "c2000001-0001-4000-8000-000000000002",
+      "name": "GPT-4o (Chat)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "position": [700, 260],
+      "position": [700, 460],
       "parameters": {
         "model": {
           "__rl": true,
@@ -167,14 +152,14 @@
       "typeVersion": 1.2
     },
     {
-      "id": "b1000001-0010-4000-8000-000000000003",
-      "name": "Radiology Knowledge Base",
+      "id": "c2000001-0001-4000-8000-000000000003",
+      "name": "Chat Knowledge Base",
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
-      "position": [920, 260],
+      "position": [920, 460],
       "parameters": {
         "mode": "retrieve-as-tool",
         "toolName": "radiology_knowledge_base",
-        "toolDescription": "Search the radiology knowledge base containing medical imaging information, pathology descriptions, anatomy references, report templates, and clinical guidelines.",
+        "toolDescription": "PRIMARY data source. Search the curated radiology knowledge base containing 3,281 documents of medical imaging information, pathology descriptions, anatomy references, report templates, and clinical guidelines. Always search this FIRST before using other tools.",
         "pineconeIndex": {
           "__rl": true,
           "mode": "list",
@@ -187,25 +172,45 @@
       "typeVersion": 1.3
     },
     {
-      "id": "b1000001-0010-4000-8000-000000000004",
-      "name": "Query Embeddings",
+      "id": "c2000001-0001-4000-8000-000000000004",
+      "name": "Chat Embeddings",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
-      "position": [920, 480],
+      "position": [920, 680],
       "parameters": {
         "model": "text-embedding-3-small",
         "options": {}
       },
       "typeVersion": 1.2
     },
-
-
     {
-      "id": "b1000001-0010-4000-8000-000000000006",
-      "name": "Format Query Response",
-      "type": "n8n-nodes-base.code",
-      "position": [1200, 0],
+      "id": "c2000001-0001-4000-8000-000000000005",
+      "name": "Perplexity Search (Chat)",
+      "type": "n8n-nodes-base.perplexityTool",
+      "position": [1140, 460],
       "parameters": {
-        "jsCode": "const output = $input.first().json.output || $input.first().json.text || '';\n\ntry {\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    return [{\n      json: {\n        type: 'query',\n        keywords: parsed.keywords || [],\n        findings: parsed.findings || '',\n        differentials: parsed.differentials || [],\n        report_suggestion: parsed.report_suggestion || ''\n      }\n    }];\n  }\n} catch (e) {}\n\nreturn [{\n  json: {\n    type: 'query',\n    keywords: [],\n    findings: output,\n    differentials: [],\n    report_suggestion: ''\n  }\n}];"
+        "model": "sonar-pro",
+        "messages": {
+          "message": [
+            {
+              "content": "You are a medical research assistant. Search for the latest peer-reviewed radiology and medical imaging information. Provide evidence-based, clinically accurate responses with citations when available.",
+              "role": "system"
+            },
+            {
+              "content": "={{ $fromAI('query', 'The radiology search query for supplementary information') }}",
+              "role": "user"
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "c2000001-0001-4000-8000-000000000006",
+      "name": "Format Chat Response",
+      "type": "n8n-nodes-base.code",
+      "position": [1200, 200],
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output || $input.first().json.text || '';\n\ntry {\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    return [{\n      json: {\n        type: 'chat',\n        keywords: parsed.keywords || [],\n        findings: parsed.findings || '',\n        differentials: parsed.differentials || [],\n        report_suggestion: parsed.report_suggestion || '',\n        sources: parsed.sources || 'pinecone'\n      }\n    }];\n  }\n} catch (e) {}\n\nreturn [{\n  json: {\n    type: 'chat',\n    keywords: [],\n    findings: output,\n    differentials: [],\n    report_suggestion: '',\n    sources: 'pinecone'\n  }\n}];"
       },
       "typeVersion": 2
     },
@@ -214,12 +219,12 @@
       "id": "b1000001-0020-4000-8000-000000000001",
       "name": "Report Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
-      "position": [800, 500],
+      "position": [800, 600],
       "parameters": {
         "promptType": "define",
-        "text": "=Generate a structured radiology report:\n\nModality: {{ $json.body.modality || 'X-ray' }}\nBody Part: {{ $json.body.body_part || 'Chest' }}\nClinical History: {{ $json.body.clinical_history || 'Not provided' }}\n\nFindings:\n{{ $json.body.findings ? $json.body.findings.join('\\n- ') : $json.body.message || 'None specified' }}\n\nSearch the knowledge base for relevant report templates and medical context, then generate the complete report.",
+        "text": "=Generate a structured radiology report:\n\nModality: {{ $json.body.modality || 'X-ray' }}\nBody Part: {{ $json.body.body_part || 'Chest' }}\nClinical History: {{ $json.body.clinical_history || 'Not provided' }}\n\nFindings:\n{{ $json.body.findings ? $json.body.findings.join('\\n- ') : $json.body.message || 'None specified' }}\n\nStep 1: Search the Radiology Knowledge Base for report templates and medical context.\nStep 2: If needed, use Perplexity to verify clinical accuracy or find additional relevant guidelines.\nStep 3: Generate the complete report prioritizing curated knowledge base data.",
         "options": {
-          "systemMessage": "You are RadAssist Report Generator. Generate professional, structured radiology reports following RSNA standards.\n\nYour response MUST be a valid JSON object (no markdown, no code fences, just raw JSON):\n{\n  \"report\": \"EXAM: [Modality] [Body Part]\\n\\nCLINICAL INDICATION: [History]\\n\\nTECHNIQUE: [Technique]\\n\\nCOMPARISON: None available.\\n\\nFINDINGS:\\n[Organized by structure]\\n\\nIMPRESSION:\\n1. [Key finding]\\n2. [Secondary finding]\"\n}\n\nGuidelines:\n- Use standard radiology terminology\n- Be systematic and thorough\n- Prioritize urgent findings\n- Include follow-up recommendations when appropriate\n- ONLY output the raw JSON object"
+          "systemMessage": "You are RadAssist Report Generator. Generate professional, structured radiology reports following RSNA standards.\n\nDATA SOURCE PRIORITY:\n1. PRIMARY: Always search the Report Knowledge Base (Pinecone) FIRST for templates and clinical data.\n2. SUPPLEMENTARY: Use Perplexity Web Search ONLY when additional clinical accuracy verification is needed or for latest reporting guidelines.\n\nYour response MUST be a valid JSON object (no markdown, no code fences, just raw JSON):\n{\n  \"report\": \"EXAM: [Modality] [Body Part]\\n\\nCLINICAL INDICATION: [History]\\n\\nTECHNIQUE: [Technique]\\n\\nCOMPARISON: None available.\\n\\nFINDINGS:\\n[Organized by structure]\\n\\nIMPRESSION:\\n1. [Key finding]\\n2. [Secondary finding]\"\n}\n\nGuidelines:\n- Use standard radiology terminology\n- Be systematic and thorough\n- Prioritize urgent findings\n- Include follow-up recommendations when appropriate\n- ONLY output the raw JSON object"
         }
       },
       "typeVersion": 1.9
@@ -228,7 +233,7 @@
       "id": "b1000001-0020-4000-8000-000000000002",
       "name": "GPT-4o (Report)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "position": [700, 760],
+      "position": [700, 860],
       "parameters": {
         "model": {
           "__rl": true,
@@ -243,11 +248,11 @@
       "id": "b1000001-0020-4000-8000-000000000003",
       "name": "Report Knowledge Base",
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
-      "position": [920, 760],
+      "position": [920, 860],
       "parameters": {
         "mode": "retrieve-as-tool",
         "toolName": "report_knowledge_base",
-        "toolDescription": "Search the radiology knowledge base for report templates, standard findings descriptions, and clinical guidelines for the given modality and body part.",
+        "toolDescription": "PRIMARY data source. Search the radiology knowledge base for report templates, standard findings descriptions, and clinical guidelines for the given modality and body part. Always search this FIRST.",
         "pineconeIndex": {
           "__rl": true,
           "mode": "list",
@@ -263,91 +268,42 @@
       "id": "b1000001-0020-4000-8000-000000000004",
       "name": "Report Embeddings",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
-      "position": [920, 980],
+      "position": [920, 1080],
       "parameters": {
         "model": "text-embedding-3-small",
         "options": {}
       },
       "typeVersion": 1.2
+    },
+    {
+      "id": "c2000001-0002-4000-8000-000000000005",
+      "name": "Perplexity Search (Report)",
+      "type": "n8n-nodes-base.perplexityTool",
+      "position": [1140, 860],
+      "parameters": {
+        "model": "sonar-pro",
+        "messages": {
+          "message": [
+            {
+              "content": "You are a medical reporting assistant. Search for radiology report guidelines, RSNA standards, and clinical best practices for report writing.",
+              "role": "system"
+            },
+            {
+              "content": "={{ $fromAI('query', 'The search query for report generation context') }}",
+              "role": "user"
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
     },
     {
       "id": "b1000001-0020-4000-8000-000000000005",
       "name": "Format Report Response",
       "type": "n8n-nodes-base.code",
-      "position": [1200, 500],
+      "position": [1200, 600],
       "parameters": {
         "jsCode": "const output = $input.first().json.output || $input.first().json.text || '';\n\ntry {\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    return [{ json: { type: 'report', report: parsed.report || output } }];\n  }\n} catch (e) {}\n\nreturn [{ json: { type: 'report', report: output } }];"
-      },
-      "typeVersion": 2
-    },
-
-    {
-      "id": "b1000001-0030-4000-8000-000000000001",
-      "name": "Lookup Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "position": [800, 900],
-      "parameters": {
-        "promptType": "define",
-        "text": "=Look up the radiology term: {{ $json.body.term || $json.body.message }}\n\nSearch the knowledge base for this term and provide a precise, structured explanation.",
-        "options": {
-          "systemMessage": "You are RadAssist, a precise radiology term reference assistant.\n\nWhen looking up a term:\n1. ALWAYS search the Radiology Knowledge Base using the tool\n2. Base your response ONLY on information found in the knowledge base\n3. If the term is not found, say so clearly\n\nYour response MUST be a valid JSON object (no markdown, no code fences, just raw JSON):\n{\n  \"term\": \"the term being looked up\",\n  \"definition\": \"Clear, concise definition\",\n  \"key_imaging_features\": [\"Feature 1\", \"Feature 2\"],\n  \"clinical_significance\": \"Why this matters clinically\",\n  \"differentials\": [\"Related condition 1\", \"Related condition 2\"]\n}\n\nGuidelines:\n- Be precise and use standard radiology terminology\n- Only include information found in the knowledge base\n- ONLY output the raw JSON object, nothing else"
-        }
-      },
-      "typeVersion": 1.9
-    },
-    {
-      "id": "b1000001-0030-4000-8000-000000000010",
-      "name": "GPT-4o (Lookup)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "position": [700, 1160],
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-4o-mini"
-        },
-        "options": {}
-      },
-      "typeVersion": 1.2
-    },
-    {
-      "id": "b1000001-0030-4000-8000-000000000011",
-      "name": "Lookup Knowledge Base",
-      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
-      "position": [920, 1160],
-      "parameters": {
-        "mode": "retrieve-as-tool",
-        "toolName": "lookup_knowledge_base",
-        "toolDescription": "Search the radiology knowledge base for term definitions, imaging findings, pathology descriptions, anatomy references, and clinical guidelines.",
-        "pineconeIndex": {
-          "__rl": true,
-          "mode": "list",
-          "value": "radiology-assistant",
-          "cachedResultName": "radiology-assistant"
-        },
-        "topK": 5,
-        "options": {}
-      },
-      "typeVersion": 1.3
-    },
-    {
-      "id": "b1000001-0030-4000-8000-000000000012",
-      "name": "Lookup Embeddings",
-      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
-      "position": [920, 1380],
-      "parameters": {
-        "model": "text-embedding-3-small",
-        "options": {}
-      },
-      "typeVersion": 1.2
-    },
-    {
-      "id": "b1000001-0030-4000-8000-000000000002",
-      "name": "Format Lookup Response",
-      "type": "n8n-nodes-base.code",
-      "position": [1200, 900],
-      "parameters": {
-        "jsCode": "const output = $input.first().json.output || $input.first().json.text || '';\n\ntry {\n  const jsonMatch = output.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    const parts = [];\n    if (parsed.definition) parts.push(parsed.definition);\n    if (parsed.key_imaging_features && parsed.key_imaging_features.length) {\n      parts.push('\\n**Key Imaging Features:**\\n' + parsed.key_imaging_features.map(f => '- ' + f).join('\\n'));\n    }\n    if (parsed.clinical_significance) parts.push('\\n**Clinical Significance:** ' + parsed.clinical_significance);\n    if (parsed.differentials && parsed.differentials.length) {\n      parts.push('\\n**Related Conditions:** ' + parsed.differentials.join(', '));\n    }\n    return [{\n      json: {\n        type: 'lookup',\n        term: parsed.term || $('Master Webhook').first().json.body?.term || '',\n        result: parts.join('\\n') || output,\n        source: 'pinecone'\n      }\n    }];\n  }\n} catch (e) {}\n\nreturn [{\n  json: {\n    type: 'lookup',\n    term: $('Master Webhook').first().json.body?.term || $('Master Webhook').first().json.body?.message || '',\n    result: output,\n    source: 'pinecone'\n  }\n}];"
       },
       "typeVersion": 2
     },
@@ -356,7 +312,7 @@
       "id": "b1000001-0040-4000-8000-000000000001",
       "name": "Format Error Response",
       "type": "n8n-nodes-base.code",
-      "position": [800, 1200],
+      "position": [800, 1100],
       "parameters": {
         "jsCode": "return [{\n  json: {\n    type: 'error',\n    message: 'Your request could not be classified. Please try rephrasing as a radiology question, report request, or term lookup.',\n    received: $input.first().json.body?.message || $input.first().json.body?.query || $input.first().json.body?.term || ''\n  }\n}];"
       },
@@ -383,7 +339,7 @@
       "parameters": {
         "width": 420,
         "height": 620,
-        "content": "## RadAssist \u2014 Unified Master Workflow\n\n**Single Endpoint Architecture**\nPOST /webhook/radiology\n\n### Flow:\n1. Master Webhook receives ALL requests\n2. IF check: image present? -> GPT-4o Vision\n3. Else: Text Classifier (GPT-4o-mini) routes to branch\n4. Single Send Response returns result\n\n### 4 Branches:\n- **Image Analysis** -> GPT-4o Vision (HTTP Request)\n- **Query** -> AI Agent + Pinecone RAG\n- **Report** -> AI Agent + Pinecone RAG\n- **Lookup** -> AI Agent + Pinecone RAG\n- **Fallback** -> Error message\n\nAll data comes from curated Pinecone vectors (3,281 docs)\n\n### Request Body:\n{ message, type?, image?, modality?, system?, findings?, body_part?, term?, clinical_context? }\n\n### Setup:\n1. Add OpenAI credentials\n2. Add Pinecone credentials\n3. Activate workflow"
+        "content": "## RadAssist v2 — Unified Master Workflow\n\n**Single Endpoint Architecture**\nPOST /webhook/radiology\n\n### Flow:\n1. Master Webhook receives ALL requests\n2. IF check: image present? → GPT-4o Vision\n3. Else: Text Classifier routes to branch\n4. Single Send Response returns result\n\n### 3 Branches:\n- **Image Analysis** → GPT-4o Vision (HTTP Request)\n- **Chat** → Unified AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Report** → Report AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Fallback** → Error message\n\n### Data Sources:\n- Pinecone: 3,281 curated radiology vectors (PRIMARY)\n- Perplexity sonar-pro: External web search (SUPPLEMENTARY)\n\n### Request Body:\n{ message, type?, image?, modality?, system?, findings?, body_part?, term?, clinical_context? }\n\n### Setup:\n1. Add OpenAI credentials\n2. Add Pinecone credentials\n3. Add Perplexity credentials\n4. Activate workflow"
       },
       "typeVersion": 1
     },
@@ -395,19 +351,31 @@
       "parameters": {
         "width": 360,
         "height": 420,
-        "content": "### Text Classifier\nGPT-4o-mini classifies incoming message:\n- Output 0: Radiology Query\n- Output 1: Report Generation\n- Output 2: Term Lookup\n- Output 3: Other (fallback)"
+        "content": "### Text Classifier\nGPT-4o-mini classifies incoming message:\n- Output 0: Radiology Chat (queries + lookups)\n- Output 1: Report Generation\n- Output 2: Other (fallback)"
       },
       "typeVersion": 1
     },
     {
-      "id": "b1000001-9003-4000-8000-000000000001",
-      "name": "Query Branch",
+      "id": "b1000001-9006-4000-8000-000000000001",
+      "name": "Image Analysis Branch",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [620, -100],
+      "position": [320, -120],
+      "parameters": {
+        "width": 700,
+        "height": 200,
+        "content": "### Branch 0: Image Analysis (GPT-4o Vision)\nHTTP Request to OpenAI Chat Completions with image_url\nReturns: { type, report, findings, impression, recommendations }"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "c2000001-9003-4000-8000-000000000001",
+      "name": "Chat Branch",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [620, 100],
       "parameters": {
         "width": 700,
         "height": 640,
-        "content": "### Branch 1: Radiology Query (RAG)\nAI Agent + Pinecone Only\nReturns: { type, keywords, findings, differentials, report_suggestion }"
+        "content": "### Branch 1: Radiology Chat (Unified)\nAI Agent with dual data sources:\n- Pinecone (PRIMARY) — curated 3,281 vectors\n- Perplexity sonar-pro (SUPPLEMENTARY) — external verification\nReturns: { type, keywords, findings, differentials, report_suggestion, sources }"
       },
       "typeVersion": 1
     },
@@ -415,23 +383,11 @@
       "id": "b1000001-9004-4000-8000-000000000001",
       "name": "Report Branch",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [620, 400],
+      "position": [620, 500],
       "parameters": {
         "width": 700,
         "height": 640,
-        "content": "### Branch 2: Report Generator\nAI Agent + Pinecone\nReturns: { type, report }"
-      },
-      "typeVersion": 1
-    },
-    {
-      "id": "b1000001-9005-4000-8000-000000000001",
-      "name": "Lookup Branch",
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [620, 820],
-      "parameters": {
-        "width": 700,
-        "height": 200,
-        "content": "### Branch 3: Term Lookup\nAI Agent + Pinecone (curated data)\nReturns: { type, term, result, source }"
+        "content": "### Branch 2: Report Generator\nAI Agent with dual data sources:\n- Pinecone (PRIMARY) — report templates & clinical data\n- Perplexity sonar-pro (SUPPLEMENTARY) — accuracy verification\nReturns: { type, report }"
       },
       "typeVersion": 1
     }
@@ -503,7 +459,7 @@
       "main": [
         [
           {
-            "node": "Query Agent",
+            "node": "Chat Agent",
             "type": "main",
             "index": 0
           }
@@ -517,13 +473,6 @@
         ],
         [
           {
-            "node": "Lookup Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
             "node": "Format Error Response",
             "type": "main",
             "index": 0
@@ -531,53 +480,63 @@
         ]
       ]
     },
-    "GPT-4o (Query)": {
+
+    "GPT-4o (Chat)": {
       "ai_languageModel": [
         [
           {
-            "node": "Query Agent",
+            "node": "Chat Agent",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "Radiology Knowledge Base": {
+    "Chat Knowledge Base": {
       "ai_tool": [
         [
           {
-            "node": "Query Agent",
+            "node": "Chat Agent",
             "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     },
-    "Query Embeddings": {
+    "Chat Embeddings": {
       "ai_embedding": [
         [
           {
-            "node": "Radiology Knowledge Base",
+            "node": "Chat Knowledge Base",
             "type": "ai_embedding",
             "index": 0
           }
         ]
       ]
     },
-
-
-    "Query Agent": {
+    "Perplexity Search (Chat)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Chat Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Agent": {
       "main": [
         [
           {
-            "node": "Format Query Response",
+            "node": "Format Chat Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Query Response": {
+    "Format Chat Response": {
       "main": [
         [
           {
@@ -588,6 +547,7 @@
         ]
       ]
     },
+
     "GPT-4o (Report)": {
       "ai_languageModel": [
         [
@@ -621,6 +581,17 @@
         ]
       ]
     },
+    "Perplexity Search (Report)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Report Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Report Agent": {
       "main": [
         [
@@ -643,61 +614,7 @@
         ]
       ]
     },
-    "Lookup Agent": {
-      "main": [
-        [
-          {
-            "node": "Format Lookup Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GPT-4o (Lookup)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Lookup Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lookup Knowledge Base": {
-      "ai_tool": [
-        [
-          {
-            "node": "Lookup Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lookup Embeddings": {
-      "ai_embedding": [
-        [
-          {
-            "node": "Lookup Knowledge Base",
-            "type": "ai_embedding",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Lookup Response": {
-      "main": [
-        [
-          {
-            "node": "Send Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
+
     "Format Error Response": {
       "main": [
         [

@@ -22,19 +22,6 @@
   // Initialize Image Analysis module
   ImageAnalysis.init();
 
-  // Report Builder image handler (separate instance)
-  createImageHandler({
-    uploadZone: 'report-upload-area',
-    fileInput: 'report-image-input',
-    preview: 'report-image-preview',
-    previewWrap: 'report-preview-wrap',
-    placeholder: 'report-upload-placeholder',
-    clearBtn: 'report-clear-btn',
-  });
-
-  // Initialize Report Builder
-  ReportBuilder.init();
-
   // Initialize Chat
   Chat.init();
 })();

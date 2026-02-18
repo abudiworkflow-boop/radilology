@@ -33,25 +33,12 @@ const API = (() => {
   }
 
   return {
-    // Query the radiology knowledge base
-    async query(queryText, filters = {}) {
+    // Unified chat — handles queries, lookups, and report requests
+    async chat(messageText, filters = {}) {
       return request({
-        message: queryText,
-        query: queryText,
+        message: messageText,
         modality: filters.modality || '',
         system: filters.system || '',
-      });
-    },
-
-    // Generate a structured radiology report
-    async generateReport(reportData) {
-      return request({
-        message: `Generate radiology report for ${reportData.modality || ''} ${reportData.bodyPart || ''}`,
-        findings: reportData.findings || [],
-        modality: reportData.modality,
-        body_part: reportData.bodyPart,
-        clinical_history: reportData.clinicalHistory || '',
-        impression_notes: reportData.impressionNotes || '',
       });
     },
 
@@ -64,14 +51,6 @@ const API = (() => {
         modality: imageData.modality || 'xray',
         body_part: imageData.bodyPart || '',
         clinical_context: imageData.clinicalContext || '',
-      });
-    },
-
-    // Real-time Radiopaedia lookup
-    async lookup(term) {
-      return request({
-        message: term,
-        term: term,
       });
     },
   };

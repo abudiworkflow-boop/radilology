@@ -1,11 +1,5 @@
 {
   "version": 2,
   "buildCommand": "",
-  "outputDirectory": "frontend",
-  "rewrites": [
-    {
-      "source": "/api/radiology",
-      "destination": "https://abudii.app.n8n.cloud/webhook/radiology"
-    }
-  ]
+  "outputDirectory": "frontend"
 }

@@ -1,9 +1,6 @@
 // n8n Webhook API communication layer
 const API = (() => {
-  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  const ENDPOINT = isLocal
-    ? 'https://abudii.app.n8n.cloud/webhook/radiology'
-    : '/api/radiology';
+  const ENDPOINT = 'https://abudii.app.n8n.cloud/webhook/radiology';
   const TIMEOUT = 60000;
 
   async function request(body, timeout) {

@@ -839,6 +839,162 @@ body {
   }
 }
 
+/* === Severity Badges === */
+.severity-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.severity-badge.critical {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid #FECACA;
+}
+
+.severity-badge.significant {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid #FDD663;
+}
+
+.severity-badge.incidental {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(15, 76, 129, 0.15);
+}
+
+/* === Confidence Tags === */
+.confidence-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  margin-right: 6px;
+}
+
+/* === Finding Items === */
+.finding-item {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #FAFBFC;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  list-style: none;
+}
+
+.finding-header {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.finding-evidence {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: white;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  line-height: 1.6;
+}
+
+.finding-differentials {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* === Urgency Tags === */
+.urgency-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 6px;
+}
+
+.urgency-tag.immediate {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.urgency-tag.urgent {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.urgency-tag.routine {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.urgency-tag.optional {
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
+.guideline-ref {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.rec-item {
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.rec-item:last-child {
+  border-bottom: none;
+}
+
+/* === Quality Grade === */
+.quality-grade {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+
+.quality-grade.grade-a {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.quality-grade.grade-b {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.quality-grade.grade-c {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.quality-grade.grade-d {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
 /* === Print === */
 @media print {
   .header, .tabs, .result-actions, .btn, .upload-zone, .add-finding-row, .chat-input-area, .chat-quick-actions {

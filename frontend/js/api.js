@@ -1,7 +1,7 @@
 // n8n Webhook API communication layer
 const API = (() => {
   const ENDPOINT = 'https://abudii.app.n8n.cloud/webhook/radiology';
-  const TIMEOUT = 60000;
+  const TIMEOUT = 120000;
 
   async function request(body, timeout) {
     const controller = new AbortController();

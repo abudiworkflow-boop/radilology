@@ -48,20 +48,51 @@ const ImageAnalysis = (() => {
   function renderResults(result, imageData) {
     document.getElementById('analysis-result-img').src = imageData;
 
+    // Render report text
     const reportEl = document.getElementById('analysis-report-text');
     reportEl.textContent = result.report || result.output || JSON.stringify(result, null, 2);
 
+    // Render findings — handle both string[] and object[] formats
     const findingsList = document.getElementById('analysis-findings-list');
     const findings = result.findings || [];
     if (Array.isArray(findings) && findings.length > 0) {
-      findingsList.innerHTML = findings.map(f => `<li>${escapeHtml(f)}</li>`).join('');
+      findingsList.innerHTML = findings.map(f => {
+        if (typeof f === 'string') return `<li>${escapeHtml(f)}</li>`;
+        // Rich finding object: {finding, severity, confidence, evidence, differential[]}
+        const severity = f.severity || '';
+        const badge = severity === 'CRITICAL' ? 'critical' : severity === 'SIGNIFICANT' ? 'significant' : 'incidental';
+        const diffList = Array.isArray(f.differential) && f.differential.length
+          ? `<div class="finding-differentials"><strong>Differentials:</strong> ${f.differential.map(d => escapeHtml(d)).join(', ')}</div>` : '';
+        const evidenceBlock = f.evidence
+          ? `<div class="finding-evidence"><strong>Evidence:</strong> ${escapeHtml(f.evidence)}</div>` : '';
+        const conf = f.confidence ? `<span class="confidence-tag">${escapeHtml(f.confidence)}</span>` : '';
+        return `<li class="finding-item">
+          <div class="finding-header"><span class="severity-badge ${badge}">${escapeHtml(severity)}</span> ${conf} ${escapeHtml(f.finding || '')}</div>
+          ${evidenceBlock}${diffList}
+        </li>`;
+      }).join('');
     } else {
       findingsList.innerHTML = '<li>No specific findings identified</li>';
     }
 
+    // Render impression
     document.getElementById('analysis-impression').textContent = result.impression || '';
-    document.getElementById('analysis-recommendations').textContent = result.recommendations || '';
 
+    // Render recommendations — handle both string and object[] formats
+    const recsEl = document.getElementById('analysis-recommendations');
+    const recs = result.recommendations;
+    if (Array.isArray(recs) && recs.length > 0) {
+      recsEl.innerHTML = recs.map(r => {
+        if (typeof r === 'string') return escapeHtml(r);
+        const urgency = r.urgency ? `<span class="urgency-tag ${(r.urgency || '').toLowerCase()}">${escapeHtml(r.urgency)}</span> ` : '';
+        const guideline = r.guideline ? ` <em class="guideline-ref">(${escapeHtml(r.guideline)})</em>` : '';
+        return `<div class="rec-item">${urgency}${escapeHtml(r.action || '')}${guideline}</div>`;
+      }).join('');
+    } else {
+      recsEl.textContent = typeof recs === 'string' ? recs : '';
+    }
+
+    // Render sources badge
     const sourcesEl = document.getElementById('analysis-sources');
     if (sourcesEl && result.sources) {
       const src = result.sources;
@@ -69,6 +100,31 @@ const ImageAnalysis = (() => {
       sourcesEl.textContent = label;
       sourcesEl.className = 'sources-badge' + (src.includes('perplexity') ? ' dual' : '');
       sourcesEl.classList.remove('hidden');
+    }
+
+    // Render quality grade if available
+    if (result.quality_metrics) {
+      const qm = result.quality_metrics;
+      const gradeEl = document.getElementById('analysis-quality-grade');
+      if (gradeEl) {
+        gradeEl.textContent = `Quality: ${qm.grade} (${qm.score}/100)`;
+        gradeEl.className = 'quality-grade grade-' + (qm.grade || 'D').toLowerCase();
+        gradeEl.classList.remove('hidden');
+      }
+    }
+
+    // Render severity summary if available
+    if (result.severity_summary) {
+      const ss = result.severity_summary;
+      const summaryEl = document.getElementById('analysis-severity-summary');
+      if (summaryEl) {
+        const parts = [];
+        if (ss.critical > 0) parts.push(`<span class="severity-badge critical">${ss.critical} Critical</span>`);
+        if (ss.significant > 0) parts.push(`<span class="severity-badge significant">${ss.significant} Significant</span>`);
+        if (ss.incidental > 0) parts.push(`<span class="severity-badge incidental">${ss.incidental} Incidental</span>`);
+        summaryEl.innerHTML = parts.join(' ');
+        summaryEl.classList.remove('hidden');
+      }
     }
 
     document.getElementById('analysis-results').classList.remove('hidden');

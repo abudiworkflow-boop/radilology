@@ -1,0 +1,19 @@
+# Environment
+.env
+node_modules/
+
+# Raw scraped data (too large for git)
+data/raw/
+
+# Embeddings output (regeneratable)
+data/embeddings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
+
+# Claude
+.claude/

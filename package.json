@@ -1,0 +1,18 @@
+{
+  "name": "radiology-reporting-assistant",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-powered radiology reporting tool with RAG - built for radiologists",
+  "scripts": {
+    "scrape": "node scripts/scrape-data.js",
+    "clean": "node scripts/clean-data.js",
+    "categorize": "node scripts/categorize-data.js",
+    "chunk": "node scripts/chunk-data.js",
+    "upload": "node scripts/upload-to-pinecone.js",
+    "pipeline": "npm run scrape && npm run clean && npm run categorize && npm run chunk && npm run upload"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^4.0.0",
+    "openai": "^4.73.0"
+  }
+}

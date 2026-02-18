@@ -1,0 +1,214 @@
+---
+title: radreport-org
+source: radreport
+category: report-template
+system: chest
+modality: ct
+---
+
+#### RSNA No Longer Publishing New Templates
+
+RadReport templates are intended to provide examples of best practices for diagnostic reporting. Users of RadReport are welcome to download the published templates and to create templates for their personal use. As of December 2022, RSNA is not currently reviewing submitted reporting templates or publishing new templates on [RadReport.org](https://radreport.org/).
+
+RSNA is currently working with the ACR to create structured content that can be more easily adopted into the reporting practice. RadElement Common Data Elements (CDEs) are sets of questions and allowable answers pertaining to a specific reporting use case. CDEs can be applied to clinical practice, research, and performance improvement initiatives in radiology. Learn more about CDEs at [RadElement.org](https://www.radelement.org/)
+
+×
+
+## RadReport Template Library
+
+Structured templates for clear and consistent reports.
+
+All Templates
+
+TLAP Endorsed Only
+
+**Advanced Search**
+
+Select by: Specialty
+
+##### Select by Specialty:
+
+- AB
+
+**Abdominal Radiology**
+
+4
+
+- BR
+
+**Breast Imaging**
+
+5
+
+- CA
+
+**Cardiac Radiology**
+
+8
+
+- CH
+
+**Chest Radiology**
+
+40
+
+- CT
+
+**Computed Tomography**
+
+92
+
+- ER
+
+**Emergency Radiology**
+
+48
+
+- FL
+
+**Fluoroscopy**
+
+0
+
+- GI
+
+**Gastrointestinal Radiology**
+
+70
+
+- GU
+
+**Genitourinary Radiology**
+
+55
+
+- HN
+
+**Head and Neck**
+
+83
+
+- IR
+
+**Interventional Radiology**
+
+17
+
+- MI
+
+**Molecular Imaging**
+
+0
+
+- MK
+
+**Musculoskeletal Radiology**
+
+65
+
+- MR
+
+**Magnetic Resonance Imaging**
+
+107
+
+- NM
+
+**Nuclear Medicine**
+
+15
+
+- NR
+
+**Neuroradiology**
+
+115
+
+- OB
+
+**OB/GYN Radiology**
+
+25
+
+- OI
+
+**Oncologic Imaging**
+
+33
+
+- OT
+
+**Other**
+
+1
+
+- PD
+
+**Pediatric Radiology**
+
+30
+
+- PET
+
+**Positron Emission Tomography**
+
+0
+
+- QI
+
+**Quality Improvement**
+
+4
+
+- RS
+
+**Research**
+
+2
+
+- US
+
+**Ultrasound**
+
+37
+
+- VI
+
+**Vascular Imaging**
+
+16
+
+- XR
+
+**Projection Radiography**
+
+0
+
+**Templates 1-20 of 434**
+
+Download Templates
+
+| Template Title | Specialty | Created | Language | TLAP <br>Endorsed | Download |
+| --- | --- | --- | --- | --- | --- |
+| [MRI Cervical Spine](https://radreport.org/home/50890/2023-05-24%2013:21:01) | NR | 5/24/2023 | English |  |  |
+| [CTA Heart Fractional Flow Reserve](https://radreport.org/home/50866/2022-01-11%2020:31:57) | CA, CT | 1/11/2022 | English |  |  |
+| [CT Angiography or CT Enterography - GI Bleed](https://radreport.org/home/50829/2021-09-27%2018:38:40) | AB, CT, ER, GI, VI | 9/27/2021 | English |  |  |
+| [CT and MR Liver - LI-RADS](https://radreport.org/home/50860/2021-07-21%2018:30:35) | AB, CT, GI, MR, OI | 7/21/2021 | English |  |  |
+| [CT Kidney and Abdomen Renal Mass](https://radreport.org/home/50857/2021-06-29%2019:29:12) | AB, CT, GU, OI | 6/29/2021 | English |  |  |
+| [MR Kidney and Abdomen Renal Mass](https://radreport.org/home/50856/2021-06-29%2019:28:03) | AB, GU, OI, MR | 6/29/2021 | English |  |  |
+| [MR Internal Auditory Canal Postoperative](https://radreport.org/home/50843/2021-03-16%2012:34:27) | HN, NR, MR | 3/16/2021 | English |  |  |
+| [CT Mastoid and Middle Ear Postoperative](https://radreport.org/home/50844/2021-03-16%2012:33:39) | CT, HN, NR | 3/16/2021 | English |  |  |
+| [Trophoblastic Diseases MRI](https://radreport.org/home/50841/2021-02-08%2019:22:51) | MR, OB | 2/8/2021 | English |  |  |
+| [Ovarian Cancer Follow Up MRI](https://radreport.org/home/50838/2021-02-08%2019:21:03) | MR, OB, OI | 2/8/2021 | English |  |  |
+| [Cervical Cancer Follow Up MRI](https://radreport.org/home/50835/2021-02-08%2019:18:11) | MR, OB, OI | 2/8/2021 | English |  |  |
+| [Uterine Malformations MRI](https://radreport.org/home/50842/2021-02-08%2019:16:36) | MR, OB | 2/8/2021 | English |  |  |
+| [Ovarian Cancer Follow Up CT](https://radreport.org/home/50840/2021-02-08%2013:21:55) | CT, OI, OB | 2/8/2021 | English |  |  |
+| [Ovarian Cancer Staging MRI](https://radreport.org/home/50837/2021-02-08%2013:20:15) | MR, OB, OI | 2/8/2021 | English |  |  |
+| [Endometrial Cancer Staging MRI](https://radreport.org/home/50836/2021-02-08%2013:19:22) | MR, OB, OI | 2/8/2021 | English |  |  |
+| [Ovarian Cancer Staging CT](https://radreport.org/home/50839/2021-02-05%2015:16:46) | CT, OB, OI | 2/5/2021 | English |  |  |
+| [MR Adnexal Mass](https://radreport.org/home/50812/2020-10-19%2009:58:57) | MR, OB, OI | 10/19/2020 | English |  |  |
+| [CT Knee](https://radreport.org/home/50833/2020-10-13%2013:41:50) | CT, MK | 10/13/2020 | English |  |  |
+| [CT Angiography Transcatheter Mitral Valve Replacement](https://radreport.org/home/50831/2020-09-21%2010:01:36) | CT, CA | 9/21/2020 | English |  |  |
+| [MRI Pelvis - Cervical Cancer](https://radreport.org/home/50821/2020-09-14%2014:35:45) | MR | 9/14/2020 | English |  |  |
+
+12345678910

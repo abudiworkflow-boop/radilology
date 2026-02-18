@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RadAssist — Radiology Reporting Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="16" stroke="currentColor" stroke-width="2"/>
+          <circle cx="18" cy="18" r="7" fill="currentColor" opacity="0.15"/>
+          <circle cx="18" cy="18" r="3" fill="currentColor"/>
+          <line x1="18" y1="2" x2="18" y2="34" stroke="currentColor" stroke-width="0.7" opacity="0.25"/>
+          <line x1="2" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="0.7" opacity="0.25"/>
+        </svg>
+        <div class="logo-text-group">
+          <span class="logo-text">RadAssist</span>
+          <span class="logo-subtitle">Radiology Reporting Assistant</span>
+        </div>
+      </div>
+      <span class="version-badge">v1.0</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" role="tab" aria-selected="true" data-tab="image">
+      <svg class="tab-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="16" height="14" rx="2"/>
+        <circle cx="7" cy="8.5" r="2"/>
+        <path d="M2 14l4.5-4 3.5 3 3-3 5 4"/>
+      </svg>
+      <span>Image Analysis</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="report">
+      <svg class="tab-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7l-5-5z"/>
+        <path d="M12 2v5h5"/>
+        <line x1="7" y1="10" x2="13" y2="10"/>
+        <line x1="7" y1="13" x2="11" y2="13"/>
+      </svg>
+      <span>Report Builder</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="chat">
+      <svg class="tab-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z"/>
+        <line x1="7" y1="8" x2="7" y2="8.01"/>
+        <line x1="10" y1="8" x2="10" y2="8.01"/>
+        <line x1="13" y1="8" x2="13" y2="8.01"/>
+      </svg>
+      <span>Chat</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="reference">
+      <svg class="tab-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 2h10a2 2 0 012 2v12a2 2 0 01-2 2H4"/>
+        <path d="M4 2v16"/>
+        <line x1="8" y1="6" x2="13" y2="6"/>
+        <line x1="8" y1="9" x2="13" y2="9"/>
+        <line x1="8" y1="12" x2="11" y2="12"/>
+      </svg>
+      <span>Reference</span>
+    </button>
+  </nav>
+
+  <main class="content">
+
+    <!-- IMAGE ANALYSIS TAB -->
+    <section id="tab-image" class="tab-panel active" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">X-ray Image Analysis</h2>
+        <p class="section-desc">Upload or capture an X-ray for AI-powered analysis</p>
+      </div>
+
+      <div id="analysis-upload-zone" class="upload-zone">
+        <input type="file" id="analysis-file-input" accept="image/*" capture="environment" hidden>
+        <div id="analysis-placeholder" class="upload-zone-placeholder">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+            <rect x="6" y="10" width="44" height="36" rx="4"/>
+            <circle cx="20" cy="24" r="5"/>
+            <path d="M6 38l14-12 10 8 8-8 12 14"/>
+            <path d="M36 10V6m0 0h-4m4 0h4" stroke-linecap="round"/>
+          </svg>
+          <p class="upload-zone-title">Drop X-ray image here</p>
+          <p class="upload-zone-hint">or click to upload / take a photo</p>
+        </div>
+        <div id="analysis-preview-wrap" class="upload-zone-preview hidden">
+          <img id="analysis-preview" alt="X-ray preview">
+          <button id="analysis-clear-btn" class="btn-icon-close" title="Remove image">&times;</button>
+        </div>
+      </div>
+
+      <div class="form-row-compact">
+        <div class="form-group">
+          <label for="analysis-modality" class="label">Modality</label>
+          <select id="analysis-modality" class="select">
+            <option value="xray" selected>X-ray</option>
+            <option value="ct">CT</option>
+            <option value="mri">MRI</option>
+            <option value="ultrasound">Ultrasound</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="analysis-bodypart" class="label">Body Region</label>
+          <select id="analysis-bodypart" class="select">
+            <option value="chest">Chest</option>
+            <option value="abdomen">Abdomen</option>
+            <option value="head">Head/Brain</option>
+            <option value="spine-cervical">Cervical Spine</option>
+            <option value="spine-lumbar">Lumbar Spine</option>
+            <option value="spine-thoracic">Thoracic Spine</option>
+            <option value="shoulder">Shoulder</option>
+            <option value="knee">Knee</option>
+            <option value="hip">Hip</option>
+            <option value="wrist">Wrist/Hand</option>
+            <option value="ankle">Ankle/Foot</option>
+            <option value="pelvis">Pelvis</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="analysis-clinical" class="label">Clinical Context <span class="label-hint">(optional)</span></label>
+        <input type="text" id="analysis-clinical" class="input" placeholder="e.g., 65yo male, cough and fever for 3 days">
+      </div>
+
+      <button id="analyze-btn" class="btn btn-primary btn-full" disabled>Analyze X-ray</button>
+
+      <div id="analysis-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Analyzing image with AI...</p>
+        <p class="loading-hint">This may take 10-20 seconds</p>
+      </div>
+
+      <div id="analysis-results" class="analysis-results hidden">
+        <div class="analysis-layout">
+          <div class="analysis-thumb">
+            <img id="analysis-result-img" alt="Analyzed X-ray">
+          </div>
+          <div class="analysis-report-col">
+            <div class="result-card">
+              <h3>AI Analysis Report</h3>
+              <div id="analysis-report-text" class="report-content"></div>
+            </div>
+            <div class="result-card">
+              <h3>Key Findings</h3>
+              <ul id="analysis-findings-list" class="findings-list-display"></ul>
+            </div>
+            <div class="result-card">
+              <h3>Impression</h3>
+              <div id="analysis-impression" class="impression-text"></div>
+            </div>
+            <div class="result-card">
+              <h3>Recommendations</h3>
+              <div id="analysis-recommendations" class="recommendation-text"></div>
+            </div>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button id="copy-analysis-btn" class="btn btn-secondary">Copy Report</button>
+          <button id="send-to-report-btn" class="btn btn-primary">Edit in Report Builder</button>
+        </div>
+      </div>
+
+      <div id="analysis-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- REPORT BUILDER TAB -->
+    <section id="tab-report" class="tab-panel" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">Report Builder</h2>
+        <p class="section-desc">Build a structured radiology report</p>
+      </div>
+
+      <div class="report-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="report-modality" class="label">Modality</label>
+            <select id="report-modality" class="select">
+              <option value="xray">X-ray</option>
+              <option value="ct">CT</option>
+              <option value="mri">MRI</option>
+              <option value="ultrasound">Ultrasound</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="report-bodypart" class="label">Body Part</label>
+            <select id="report-bodypart" class="select">
+              <option value="chest">Chest</option>
+              <option value="abdomen">Abdomen</option>
+              <option value="head">Head/Brain</option>
+              <option value="spine-cervical">Cervical Spine</option>
+              <option value="spine-lumbar">Lumbar Spine</option>
+              <option value="spine-thoracic">Thoracic Spine</option>
+              <option value="shoulder">Shoulder</option>
+              <option value="knee">Knee</option>
+              <option value="hip">Hip</option>
+              <option value="wrist">Wrist/Hand</option>
+              <option value="ankle">Ankle/Foot</option>
+              <option value="pelvis">Pelvis</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="clinical-history" class="label">Clinical History</label>
+          <textarea id="clinical-history" class="textarea" rows="2" placeholder="e.g., SOB, rule out pneumothorax"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="label">Upload Image <span class="label-hint">(optional)</span></label>
+          <div id="report-upload-area" class="upload-zone upload-zone-small">
+            <input type="file" id="report-image-input" accept="image/*" capture="environment" hidden>
+            <div id="report-upload-placeholder" class="upload-zone-placeholder">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                <rect x="4" y="6" width="28" height="24" rx="3"/>
+                <circle cx="13" cy="15" r="3"/>
+                <path d="M4 25l9-8 6 5 5-5 8 8"/>
+              </svg>
+              <p class="upload-zone-hint">Tap to upload or take a photo</p>
+            </div>
+            <div id="report-preview-wrap" class="upload-zone-preview hidden">
+              <img id="report-image-preview" alt="X-ray preview">
+              <button id="report-clear-btn" class="btn-icon-close" title="Remove">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="label">Findings</label>
+          <div id="findings-list" class="findings-pills"></div>
+          <div class="add-finding-row">
+            <input type="text" id="finding-input" class="input" placeholder="Type a finding...">
+            <button id="add-finding-btn" class="btn btn-secondary">+ Add</button>
+          </div>
+          <div id="keyword-suggestions" class="suggestions hidden"></div>
+        </div>
+
+        <button id="generate-report-btn" class="btn btn-primary btn-full">Generate Report</button>
+      </div>
+
+      <div id="report-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Generating radiology report...</p>
+      </div>
+
+      <div id="generated-report" class="generated-report hidden">
+        <h3>Generated Report</h3>
+        <div id="report-content" class="report-content" contenteditable="true"></div>
+        <div class="result-actions">
+          <button id="copy-report-btn" class="btn btn-secondary">Copy Report</button>
+          <button id="save-draft-btn" class="btn btn-secondary">Save Draft</button>
+        </div>
+      </div>
+
+      <div id="report-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- CHAT TAB -->
+    <section id="tab-chat" class="tab-panel" role="tabpanel">
+      <div class="chat-container">
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-message assistant">
+            <div class="chat-avatar">RA</div>
+            <div class="chat-bubble">
+              <p><strong>Welcome to RadAssist Chat</strong></p>
+              <p>I can help you with:</p>
+              <ul>
+                <li>Radiology term definitions</li>
+                <li>Imaging findings &amp; differential diagnoses</li>
+                <li>Clinical radiology questions</li>
+              </ul>
+              <p>Type a question or term below to get started.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="chat-quick-actions" class="chat-quick-actions">
+          <button class="chip" data-query="pneumothorax">Pneumothorax</button>
+          <button class="chip" data-query="cardiomegaly">Cardiomegaly</button>
+          <button class="chip" data-query="pleural effusion">Pleural Effusion</button>
+          <button class="chip" data-query="consolidation vs ground glass opacity">Consolidation vs GGO</button>
+          <button class="chip" data-query="atelectasis">Atelectasis</button>
+        </div>
+
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" class="chat-text-input" placeholder="Ask about any radiology term or concept..." autocomplete="off">
+          <button id="chat-send-btn" class="btn btn-primary chat-send-btn" title="Send">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 2L9 11"/>
+              <path d="M18 2l-6 16-3-7-7-3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- REFERENCE TAB -->
+    <section id="tab-reference" class="tab-panel" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">Quick Reference</h2>
+        <p class="section-desc">How to use RadAssist and radiology fundamentals</p>
+      </div>
+
+      <div class="help-card">
+        <h3>Image Analysis</h3>
+        <p>Upload or capture an X-ray image and let GPT-4o Vision analyze it. You'll receive a structured report with findings, impression, and follow-up recommendations. Use "Edit in Report Builder" to refine the generated report.</p>
+      </div>
+
+      <div class="help-card">
+        <h3>Report Builder</h3>
+        <ol>
+          <li>Select the modality and body part</li>
+          <li>Enter the clinical history</li>
+          <li>Optionally upload an X-ray image</li>
+          <li>Add your findings one by one (use keyword suggestions)</li>
+          <li>Click "Generate Report" for a structured RSNA-style report</li>
+          <li>Edit the generated report directly, then copy or save as draft</li>
+        </ol>
+      </div>
+
+      <div class="help-card">
+        <h3>Chat</h3>
+        <p>Use the chat tab to ask any radiology question or look up specific terms. Short terms (e.g., "pneumothorax") trigger a quick lookup. Full questions get a detailed response with keywords, findings, and differentials.</p>
+      </div>
+
+      <div class="help-card">
+        <h3>Report Structure (RSNA Standard)</h3>
+        <ul>
+          <li><strong>EXAM:</strong> Modality and body part</li>
+          <li><strong>CLINICAL INDICATION:</strong> Why the study was ordered</li>
+          <li><strong>TECHNIQUE:</strong> Imaging protocol used</li>
+          <li><strong>COMPARISON:</strong> Prior studies (if any)</li>
+          <li><strong>FINDINGS:</strong> Detailed anatomical description</li>
+          <li><strong>IMPRESSION:</strong> Summary of key findings</li>
+        </ul>
+      </div>
+
+      <div class="help-card">
+        <h3>Common Radiology Keywords</h3>
+        <div class="keyword-list">
+          <span class="keyword">Opacity</span>
+          <span class="keyword">Consolidation</span>
+          <span class="keyword">Effusion</span>
+          <span class="keyword">Atelectasis</span>
+          <span class="keyword">Fracture</span>
+          <span class="keyword">Dislocation</span>
+          <span class="keyword">Stenosis</span>
+          <span class="keyword">Lesion</span>
+          <span class="keyword">Nodule</span>
+          <span class="keyword">Mass</span>
+          <span class="keyword">Calcification</span>
+          <span class="keyword">Edema</span>
+          <span class="keyword">Herniation</span>
+          <span class="keyword">Bilateral</span>
+          <span class="keyword">Unremarkable</span>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Disclaimer:</strong> RadAssist is for educational and clinical reference only. All AI-generated reports and analyses must be reviewed and verified by a qualified radiologist before clinical use.
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/image-handler.js"></script>
+  <script src="js/report-builder.js"></script>
+  <script src="js/image-analysis.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

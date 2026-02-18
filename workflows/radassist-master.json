@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-02-18T23:05:26.364Z",
+  "updatedAt": "2026-02-18T23:15:59.225Z",
   "createdAt": "2026-02-17T23:46:14.221Z",
   "id": "NdkxQCmiJ2XEnjul",
   "name": "RadAssist — Master Workflow v3",
@@ -162,7 +162,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\nlet context = {};\ntry { context = $('Build Vision Prompt').first().json || {}; } catch (e) {}\n\nlet visionData = null;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) visionData = JSON.parse(jsonMatch[0]);\n} catch (e) {}\n\nconst bodyPart = context.body_part || 'chest';\nconst modality = context.modality || 'X-ray';\n\n// DEFAULT search queries — ALWAYS provided so agent always has something to search\nconst defaultQueries = [\n  bodyPart + ' ' + modality + ' normal anatomy and variants',\n  bodyPart + ' ' + modality + ' common pathology findings',\n  bodyPart + ' imaging interpretation checklist'\n];\n\nif (!visionData) {\n  return [{\n    json: {\n      vision_raw: content,\n      modality_confirmed: modality,\n      projection_view: 'Not determined',\n      technical_quality: { overall: 'NOT_ASSESSED', details: 'Vision response could not be parsed', limitations: ['Unstructured response'] },\n      findings_structured: [],\n      findings_text: content || 'Vision analysis did not return structured findings. Agent must still search knowledge base for ' + bodyPart + ' ' + modality + ' interpretation guidance.',\n      critical_findings: [],\n      significant_findings: [],\n      incidental_findings: [],\n      normal_findings: [],\n      preliminary_impression: 'Vision analysis incomplete — agent must use knowledge base and Perplexity to provide thorough analysis',\n      critical_alerts: [],\n      differential_considerations: [],\n      search_queries: defaultQueries,\n      total_findings: 0,\n      severity_summary: { critical: 0, significant: 0, incidental: 0, normal: 0 },\n      modality: modality,\n      body_part: bodyPart,\n      clinical_context: context.clinical_context || ''\n    }\n  }];\n}\n\nconst findings = Array.isArray(visionData.findings) ? visionData.findings : [];\nconst critical = findings.filter(f => f.severity === 'CRITICAL');\nconst significant = findings.filter(f => f.severity === 'SIGNIFICANT');\nconst incidental = findings.filter(f => f.severity === 'INCIDENTAL');\nconst normal = findings.filter(f => f.severity === 'NORMAL');\n\nconst findingsByPriority = [\n  ...critical.map(f => '[CRITICAL] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified') + (f.measurement ? ', Size: ' + f.measurement : '')),\n  ...significant.map(f => '[SIGNIFICANT] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified') + (f.measurement ? ', Size: ' + f.measurement : '')),\n  ...incidental.map(f => '[INCIDENTAL] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified')),\n  ...normal.map(f => '[NORMAL] ' + (f.structure || '') + ': ' + f.observation)\n];\n\n// Generate targeted search queries from findings\nconst searchQueries = [];\nfindings.forEach(f => {\n  if (f.severity !== 'NORMAL' && f.search_terms) searchQueries.push(...f.search_terms);\n  if (f.severity === 'CRITICAL' || f.severity === 'SIGNIFICANT') searchQueries.push(f.observation);\n});\nif (visionData.differential_considerations) searchQueries.push(...visionData.differential_considerations);\n\n// ALWAYS include default queries as fallback\nconst allQueries = [...new Set([...searchQueries, ...defaultQueries])];\n\nreturn [{\n  json: {\n    vision_raw: content,\n    modality_confirmed: visionData.modality_confirmed || modality,\n    projection_view: visionData.projection_view || 'Not specified',\n    technical_quality: visionData.technical_quality || { overall: 'NOT_ASSESSED', details: '', limitations: [] },\n    findings_structured: findings,\n    findings_text: findingsByPriority.length > 0 ? findingsByPriority.join('\\n') : 'No specific abnormalities detected by vision analysis. Agent must verify with knowledge base.',\n    critical_findings: critical,\n    significant_findings: significant,\n    incidental_findings: incidental,\n    normal_findings: normal,\n    preliminary_impression: visionData.preliminary_impression || '',\n    critical_alerts: visionData.critical_alerts || [],\n    differential_considerations: visionData.differential_considerations || [],\n    search_queries: allQueries,\n    total_findings: findings.length,\n    severity_summary: {\n      critical: critical.length,\n      significant: significant.length,\n      incidental: incidental.length,\n      normal: normal.length\n    },\n    modality: modality,\n    body_part: bodyPart,\n    clinical_context: context.clinical_context || ''\n  }\n}];"
+        "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\nlet context = {};\ntry { context = $('Build Vision Prompt').first().json || {}; } catch (e) {}\n\nlet visionData = null;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) visionData = JSON.parse(jsonMatch[0]);\n} catch (e) {}\n\nconst bodyPart = context.body_part || 'chest';\nconst modality = context.modality || 'X-ray';\nconst clinicalCtx = context.clinical_context || '';\n\n// Default search queries — ALWAYS provided\nconst defaultQueries = [\n  bodyPart + ' ' + modality + ' normal anatomy and variants',\n  bodyPart + ' ' + modality + ' common pathology findings',\n  bodyPart + ' imaging interpretation checklist'\n];\n\n// Detect GPT-4o refusals\nconst refusalPhrases = [\"i'm unable to\", \"i cannot analyze\", \"i can't analyze\", \"i'm not able to\", \"cannot interpret images\", \"can't interpret images\"];\nconst isRefusal = refusalPhrases.some(p => content.toLowerCase().includes(p));\n\nif (!visionData || isRefusal) {\n  return [{\n    json: {\n      modality: modality,\n      projection_view: 'Not determined',\n      body_part: bodyPart,\n      clinical_context: clinicalCtx,\n      technical_quality: { overall: 'NOT_ASSESSED', details: isRefusal ? 'Vision model declined — agent must rely on knowledge base' : 'Vision parsing failed', limitations: ['No structured vision data'] },\n      findings_text: isRefusal\n        ? 'Vision model could not analyze image directly. You MUST search the knowledge base extensively for ' + bodyPart + ' ' + modality + ' findings and provide a thorough report based on general ' + bodyPart + ' anatomy and common pathologies.'\n        : (content.substring(0, 500) || 'No vision findings available.'),\n      preliminary_impression: 'Pending — requires knowledge base research',\n      critical_alerts: [],\n      differential_considerations: [],\n      search_queries: defaultQueries,\n      total_findings: 0,\n      severity_summary: { critical: 0, significant: 0, incidental: 0, normal: 0 }\n    }\n  }];\n}\n\nconst findings = Array.isArray(visionData.findings) ? visionData.findings : [];\nconst critical = findings.filter(f => f.severity === 'CRITICAL');\nconst significant = findings.filter(f => f.severity === 'SIGNIFICANT');\nconst incidental = findings.filter(f => f.severity === 'INCIDENTAL');\nconst normal = findings.filter(f => f.severity === 'NORMAL');\n\n// Build concise findings text (only abnormal + brief normal summary)\nconst abnormalText = [\n  ...critical.map(f => '[CRITICAL] ' + f.observation + ' — ' + (f.location || '') + (f.measurement ? ', ' + f.measurement : '')),\n  ...significant.map(f => '[SIGNIFICANT] ' + f.observation + ' — ' + (f.location || '') + (f.measurement ? ', ' + f.measurement : '')),\n  ...incidental.map(f => '[INCIDENTAL] ' + f.observation + ' — ' + (f.location || ''))\n];\nconst normalCount = normal.length;\nconst findingsText = abnormalText.length > 0\n  ? abnormalText.join('\\n') + (normalCount > 0 ? '\\n[NORMAL] ' + normalCount + ' structures assessed as normal.' : '')\n  : normalCount > 0 ? normalCount + ' structures assessed as normal. No abnormalities detected by vision.' : 'No findings extracted.';\n\n// Targeted search queries from findings\nconst searchQueries = [];\nfindings.forEach(f => {\n  if (f.severity !== 'NORMAL' && f.search_terms) searchQueries.push(...f.search_terms);\n  if (f.severity === 'CRITICAL' || f.severity === 'SIGNIFICANT') searchQueries.push(f.observation);\n});\nif (visionData.differential_considerations) searchQueries.push(...visionData.differential_considerations);\nconst allQueries = [...new Set([...searchQueries, ...defaultQueries])].slice(0, 8);\n\n// OUTPUT: Only fields the agent prompt template references — nothing extra\nreturn [{\n  json: {\n    modality: visionData.modality_confirmed || modality,\n    projection_view: visionData.projection_view || 'Standard',\n    body_part: bodyPart,\n    clinical_context: clinicalCtx,\n    technical_quality: visionData.technical_quality || { overall: 'NOT_ASSESSED', details: '', limitations: [] },\n    findings_text: findingsText,\n    preliminary_impression: visionData.preliminary_impression || '',\n    critical_alerts: (visionData.critical_alerts || []).slice(0, 3),\n    differential_considerations: (visionData.differential_considerations || []).slice(0, 5),\n    search_queries: allQueries,\n    total_findings: findings.length,\n    severity_summary: {\n      critical: critical.length,\n      significant: significant.length,\n      incidental: incidental.length,\n      normal: normal.length\n    }\n  }\n}];"
       },
       "id": "b1000001-0060-4000-8000-000000000003",
       "name": "Parse & Classify Findings",
@@ -188,21 +188,19 @@
         1472,
         -320
       ],
-      "typeVersion": 1.9
+      "typeVersion": 1.9,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-4o"
-        },
+        "model": "gpt-4o-mini",
         "options": {
-          "temperature": 0.15
+          "temperature": 0.15,
+          "maxTokensToSample": 4096
         }
       },
       "id": "d3000001-0001-4000-8000-000000000002",
-      "name": "GPT-4o (Image Report)",
+      "name": "GPT-4o-mini (Image Report)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "position": [
         1360,
@@ -297,7 +295,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const agentOutput = $input.first().json;\nconst content = agentOutput.output || agentOutput.text || '';\n\n// Get severity info from Parse & Classify\nlet parseData = {};\ntry {\n  parseData = $('Parse & Classify Findings').first().json || {};\n} catch (e) {}\n\ntry {\n  const textToParse = content || JSON.stringify(agentOutput);\n  const jsonMatch = textToParse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    \n    // Ensure findings are properly structured\n    const findings = Array.isArray(parsed.findings) ? parsed.findings.map(f => {\n      if (typeof f === 'string') return { finding: f, severity: 'SIGNIFICANT', confidence: 'MODERATE' };\n      return f;\n    }) : [];\n\n    // Ensure recommendations are properly structured\n    const recommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations.map(r => {\n      if (typeof r === 'string') return { action: r, urgency: 'ROUTINE', guideline: '' };\n      return r;\n    }) : (parsed.recommendations ? [{ action: String(parsed.recommendations), urgency: 'ROUTINE', guideline: '' }] : []);\n\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || textToParse,\n        findings: findings,\n        impression: parsed.impression || '',\n        recommendations: recommendations,\n        critical_alerts: parsed.critical_alerts || parseData.critical_alerts || [],\n        severity_summary: parsed.severity_summary || parseData.severity_summary || {},\n        technical_quality: parseData.technical_quality || {},\n        modality: parseData.modality || '',\n        body_part: parseData.body_part || '',\n        sources: parsed.sources || 'pinecone',\n        disclaimer: parsed.disclaimer || 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n      }\n    }];\n  }\n} catch (e) {}\n\n// Fallback\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content || JSON.stringify(agentOutput, null, 2),\n    findings: [],\n    impression: '',\n    recommendations: [],\n    critical_alerts: parseData.critical_alerts || [],\n    severity_summary: parseData.severity_summary || {},\n    technical_quality: parseData.technical_quality || {},\n    modality: parseData.modality || '',\n    body_part: parseData.body_part || '',\n    sources: 'unknown',\n    disclaimer: 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n  }\n}];"
+        "jsCode": "const agentOutput = $input.first().json;\nconst content = agentOutput.output || agentOutput.text || '';\n\n// Get context from Parse & Classify\nlet parseData = {};\ntry { parseData = $('Parse & Classify Findings').first().json || {}; } catch (e) {}\n\n// Check if this is an error passthrough\nconst isError = agentOutput.error || agentOutput.errorMessage || (!content && !agentOutput.output);\n\nif (isError) {\n  const errMsg = agentOutput.errorMessage || agentOutput.error?.message || 'Analysis encountered an error';\n  return [{\n    json: {\n      type: 'image_analysis',\n      report: 'Analysis could not be completed: ' + errMsg + '. Please try again in a moment.',\n      findings: [{ finding: 'Analysis incomplete due to a processing error', severity: 'INCIDENTAL', confidence: 'LOW', evidence: '', differential: [] }],\n      impression: 'Analysis could not be completed. Please retry.',\n      recommendations: [{ action: 'Retry the analysis after a brief wait', urgency: 'ROUTINE', guideline: '' }],\n      critical_alerts: [],\n      severity_summary: parseData.severity_summary || { critical: 0, significant: 0, incidental: 0 },\n      technical_quality: parseData.technical_quality || {},\n      modality: parseData.modality || '',\n      body_part: parseData.body_part || '',\n      sources: 'none',\n      disclaimer: 'AI-assisted analysis encountered an error. All findings must be verified by a qualified radiologist.'\n    }\n  }];\n}\n\ntry {\n  const textToParse = content || JSON.stringify(agentOutput);\n  const jsonMatch = textToParse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n\n    const findings = Array.isArray(parsed.findings) ? parsed.findings.map(f => {\n      if (typeof f === 'string') return { finding: f, severity: 'SIGNIFICANT', confidence: 'MODERATE', evidence: '', differential: [] };\n      return f;\n    }) : [];\n\n    const recommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations.map(r => {\n      if (typeof r === 'string') return { action: r, urgency: 'ROUTINE', guideline: '' };\n      return r;\n    }) : (parsed.recommendations ? [{ action: String(parsed.recommendations), urgency: 'ROUTINE', guideline: '' }] : []);\n\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || textToParse,\n        findings: findings,\n        impression: parsed.impression || '',\n        recommendations: recommendations,\n        critical_alerts: parsed.critical_alerts || parseData.critical_alerts || [],\n        severity_summary: parsed.severity_summary || parseData.severity_summary || {},\n        technical_quality: parseData.technical_quality || {},\n        modality: parseData.modality || '',\n        body_part: parseData.body_part || '',\n        sources: parsed.sources || 'pinecone',\n        disclaimer: parsed.disclaimer || 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n      }\n    }];\n  }\n} catch (e) {}\n\n// Fallback\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content || JSON.stringify(agentOutput, null, 2),\n    findings: [],\n    impression: '',\n    recommendations: [],\n    critical_alerts: [],\n    severity_summary: parseData.severity_summary || {},\n    technical_quality: parseData.technical_quality || {},\n    modality: parseData.modality || '',\n    body_part: parseData.body_part || '',\n    sources: 'unknown',\n    disclaimer: 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n  }\n}];"
       },
       "id": "d3000001-0001-4000-8000-000000000006",
       "name": "Compile Image Report",
@@ -844,17 +842,6 @@
         ]
       ]
     },
-    "GPT-4o (Image Report)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Image Report Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Image Knowledge Base": {
       "ai_tool": [
         [
@@ -1099,6 +1086,17 @@
           }
         ]
       ]
+    },
+    "GPT-4o-mini (Image Report)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Image Report Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1111,9 +1109,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "0886f806-280e-42a3-b701-642158d7d9e7",
-  "activeVersionId": "0886f806-280e-42a3-b701-642158d7d9e7",
-  "versionCounter": 173,
+  "versionId": "36e2066a-6d79-4f24-b92d-1f4a761dfe00",
+  "activeVersionId": "36e2066a-6d79-4f24-b92d-1f4a761dfe00",
+  "versionCounter": 176,
   "triggerCount": 1,
   "shared": [
     {
@@ -1167,9 +1165,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-02-18T23:05:26.366Z",
-    "createdAt": "2026-02-18T23:05:26.366Z",
-    "versionId": "0886f806-280e-42a3-b701-642158d7d9e7",
+    "updatedAt": "2026-02-18T23:15:59.228Z",
+    "createdAt": "2026-02-18T23:15:59.228Z",
+    "versionId": "36e2066a-6d79-4f24-b92d-1f4a761dfe00",
     "workflowId": "NdkxQCmiJ2XEnjul",
     "nodes": [
       {
@@ -1327,7 +1325,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\nlet context = {};\ntry { context = $('Build Vision Prompt').first().json || {}; } catch (e) {}\n\nlet visionData = null;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) visionData = JSON.parse(jsonMatch[0]);\n} catch (e) {}\n\nconst bodyPart = context.body_part || 'chest';\nconst modality = context.modality || 'X-ray';\n\n// DEFAULT search queries — ALWAYS provided so agent always has something to search\nconst defaultQueries = [\n  bodyPart + ' ' + modality + ' normal anatomy and variants',\n  bodyPart + ' ' + modality + ' common pathology findings',\n  bodyPart + ' imaging interpretation checklist'\n];\n\nif (!visionData) {\n  return [{\n    json: {\n      vision_raw: content,\n      modality_confirmed: modality,\n      projection_view: 'Not determined',\n      technical_quality: { overall: 'NOT_ASSESSED', details: 'Vision response could not be parsed', limitations: ['Unstructured response'] },\n      findings_structured: [],\n      findings_text: content || 'Vision analysis did not return structured findings. Agent must still search knowledge base for ' + bodyPart + ' ' + modality + ' interpretation guidance.',\n      critical_findings: [],\n      significant_findings: [],\n      incidental_findings: [],\n      normal_findings: [],\n      preliminary_impression: 'Vision analysis incomplete — agent must use knowledge base and Perplexity to provide thorough analysis',\n      critical_alerts: [],\n      differential_considerations: [],\n      search_queries: defaultQueries,\n      total_findings: 0,\n      severity_summary: { critical: 0, significant: 0, incidental: 0, normal: 0 },\n      modality: modality,\n      body_part: bodyPart,\n      clinical_context: context.clinical_context || ''\n    }\n  }];\n}\n\nconst findings = Array.isArray(visionData.findings) ? visionData.findings : [];\nconst critical = findings.filter(f => f.severity === 'CRITICAL');\nconst significant = findings.filter(f => f.severity === 'SIGNIFICANT');\nconst incidental = findings.filter(f => f.severity === 'INCIDENTAL');\nconst normal = findings.filter(f => f.severity === 'NORMAL');\n\nconst findingsByPriority = [\n  ...critical.map(f => '[CRITICAL] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified') + (f.measurement ? ', Size: ' + f.measurement : '')),\n  ...significant.map(f => '[SIGNIFICANT] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified') + (f.measurement ? ', Size: ' + f.measurement : '')),\n  ...incidental.map(f => '[INCIDENTAL] ' + f.observation + ' — Location: ' + (f.location || 'unspecified') + ', Confidence: ' + (f.confidence || 'unspecified')),\n  ...normal.map(f => '[NORMAL] ' + (f.structure || '') + ': ' + f.observation)\n];\n\n// Generate targeted search queries from findings\nconst searchQueries = [];\nfindings.forEach(f => {\n  if (f.severity !== 'NORMAL' && f.search_terms) searchQueries.push(...f.search_terms);\n  if (f.severity === 'CRITICAL' || f.severity === 'SIGNIFICANT') searchQueries.push(f.observation);\n});\nif (visionData.differential_considerations) searchQueries.push(...visionData.differential_considerations);\n\n// ALWAYS include default queries as fallback\nconst allQueries = [...new Set([...searchQueries, ...defaultQueries])];\n\nreturn [{\n  json: {\n    vision_raw: content,\n    modality_confirmed: visionData.modality_confirmed || modality,\n    projection_view: visionData.projection_view || 'Not specified',\n    technical_quality: visionData.technical_quality || { overall: 'NOT_ASSESSED', details: '', limitations: [] },\n    findings_structured: findings,\n    findings_text: findingsByPriority.length > 0 ? findingsByPriority.join('\\n') : 'No specific abnormalities detected by vision analysis. Agent must verify with knowledge base.',\n    critical_findings: critical,\n    significant_findings: significant,\n    incidental_findings: incidental,\n    normal_findings: normal,\n    preliminary_impression: visionData.preliminary_impression || '',\n    critical_alerts: visionData.critical_alerts || [],\n    differential_considerations: visionData.differential_considerations || [],\n    search_queries: allQueries,\n    total_findings: findings.length,\n    severity_summary: {\n      critical: critical.length,\n      significant: significant.length,\n      incidental: incidental.length,\n      normal: normal.length\n    },\n    modality: modality,\n    body_part: bodyPart,\n    clinical_context: context.clinical_context || ''\n  }\n}];"
+          "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\nlet context = {};\ntry { context = $('Build Vision Prompt').first().json || {}; } catch (e) {}\n\nlet visionData = null;\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) visionData = JSON.parse(jsonMatch[0]);\n} catch (e) {}\n\nconst bodyPart = context.body_part || 'chest';\nconst modality = context.modality || 'X-ray';\nconst clinicalCtx = context.clinical_context || '';\n\n// Default search queries — ALWAYS provided\nconst defaultQueries = [\n  bodyPart + ' ' + modality + ' normal anatomy and variants',\n  bodyPart + ' ' + modality + ' common pathology findings',\n  bodyPart + ' imaging interpretation checklist'\n];\n\n// Detect GPT-4o refusals\nconst refusalPhrases = [\"i'm unable to\", \"i cannot analyze\", \"i can't analyze\", \"i'm not able to\", \"cannot interpret images\", \"can't interpret images\"];\nconst isRefusal = refusalPhrases.some(p => content.toLowerCase().includes(p));\n\nif (!visionData || isRefusal) {\n  return [{\n    json: {\n      modality: modality,\n      projection_view: 'Not determined',\n      body_part: bodyPart,\n      clinical_context: clinicalCtx,\n      technical_quality: { overall: 'NOT_ASSESSED', details: isRefusal ? 'Vision model declined — agent must rely on knowledge base' : 'Vision parsing failed', limitations: ['No structured vision data'] },\n      findings_text: isRefusal\n        ? 'Vision model could not analyze image directly. You MUST search the knowledge base extensively for ' + bodyPart + ' ' + modality + ' findings and provide a thorough report based on general ' + bodyPart + ' anatomy and common pathologies.'\n        : (content.substring(0, 500) || 'No vision findings available.'),\n      preliminary_impression: 'Pending — requires knowledge base research',\n      critical_alerts: [],\n      differential_considerations: [],\n      search_queries: defaultQueries,\n      total_findings: 0,\n      severity_summary: { critical: 0, significant: 0, incidental: 0, normal: 0 }\n    }\n  }];\n}\n\nconst findings = Array.isArray(visionData.findings) ? visionData.findings : [];\nconst critical = findings.filter(f => f.severity === 'CRITICAL');\nconst significant = findings.filter(f => f.severity === 'SIGNIFICANT');\nconst incidental = findings.filter(f => f.severity === 'INCIDENTAL');\nconst normal = findings.filter(f => f.severity === 'NORMAL');\n\n// Build concise findings text (only abnormal + brief normal summary)\nconst abnormalText = [\n  ...critical.map(f => '[CRITICAL] ' + f.observation + ' — ' + (f.location || '') + (f.measurement ? ', ' + f.measurement : '')),\n  ...significant.map(f => '[SIGNIFICANT] ' + f.observation + ' — ' + (f.location || '') + (f.measurement ? ', ' + f.measurement : '')),\n  ...incidental.map(f => '[INCIDENTAL] ' + f.observation + ' — ' + (f.location || ''))\n];\nconst normalCount = normal.length;\nconst findingsText = abnormalText.length > 0\n  ? abnormalText.join('\\n') + (normalCount > 0 ? '\\n[NORMAL] ' + normalCount + ' structures assessed as normal.' : '')\n  : normalCount > 0 ? normalCount + ' structures assessed as normal. No abnormalities detected by vision.' : 'No findings extracted.';\n\n// Targeted search queries from findings\nconst searchQueries = [];\nfindings.forEach(f => {\n  if (f.severity !== 'NORMAL' && f.search_terms) searchQueries.push(...f.search_terms);\n  if (f.severity === 'CRITICAL' || f.severity === 'SIGNIFICANT') searchQueries.push(f.observation);\n});\nif (visionData.differential_considerations) searchQueries.push(...visionData.differential_considerations);\nconst allQueries = [...new Set([...searchQueries, ...defaultQueries])].slice(0, 8);\n\n// OUTPUT: Only fields the agent prompt template references — nothing extra\nreturn [{\n  json: {\n    modality: visionData.modality_confirmed || modality,\n    projection_view: visionData.projection_view || 'Standard',\n    body_part: bodyPart,\n    clinical_context: clinicalCtx,\n    technical_quality: visionData.technical_quality || { overall: 'NOT_ASSESSED', details: '', limitations: [] },\n    findings_text: findingsText,\n    preliminary_impression: visionData.preliminary_impression || '',\n    critical_alerts: (visionData.critical_alerts || []).slice(0, 3),\n    differential_considerations: (visionData.differential_considerations || []).slice(0, 5),\n    search_queries: allQueries,\n    total_findings: findings.length,\n    severity_summary: {\n      critical: critical.length,\n      significant: significant.length,\n      incidental: incidental.length,\n      normal: normal.length\n    }\n  }\n}];"
         },
         "id": "b1000001-0060-4000-8000-000000000003",
         "name": "Parse & Classify Findings",
@@ -1353,21 +1351,19 @@
           1472,
           -320
         ],
-        "typeVersion": 1.9
+        "typeVersion": 1.9,
+        "onError": "continueRegularOutput"
       },
       {
         "parameters": {
-          "model": {
-            "__rl": true,
-            "mode": "list",
-            "value": "gpt-4o"
-          },
+          "model": "gpt-4o-mini",
           "options": {
-            "temperature": 0.15
+            "temperature": 0.15,
+            "maxTokensToSample": 4096
           }
         },
         "id": "d3000001-0001-4000-8000-000000000002",
-        "name": "GPT-4o (Image Report)",
+        "name": "GPT-4o-mini (Image Report)",
         "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
         "position": [
           1360,
@@ -1462,7 +1458,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const agentOutput = $input.first().json;\nconst content = agentOutput.output || agentOutput.text || '';\n\n// Get severity info from Parse & Classify\nlet parseData = {};\ntry {\n  parseData = $('Parse & Classify Findings').first().json || {};\n} catch (e) {}\n\ntry {\n  const textToParse = content || JSON.stringify(agentOutput);\n  const jsonMatch = textToParse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    \n    // Ensure findings are properly structured\n    const findings = Array.isArray(parsed.findings) ? parsed.findings.map(f => {\n      if (typeof f === 'string') return { finding: f, severity: 'SIGNIFICANT', confidence: 'MODERATE' };\n      return f;\n    }) : [];\n\n    // Ensure recommendations are properly structured\n    const recommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations.map(r => {\n      if (typeof r === 'string') return { action: r, urgency: 'ROUTINE', guideline: '' };\n      return r;\n    }) : (parsed.recommendations ? [{ action: String(parsed.recommendations), urgency: 'ROUTINE', guideline: '' }] : []);\n\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || textToParse,\n        findings: findings,\n        impression: parsed.impression || '',\n        recommendations: recommendations,\n        critical_alerts: parsed.critical_alerts || parseData.critical_alerts || [],\n        severity_summary: parsed.severity_summary || parseData.severity_summary || {},\n        technical_quality: parseData.technical_quality || {},\n        modality: parseData.modality || '',\n        body_part: parseData.body_part || '',\n        sources: parsed.sources || 'pinecone',\n        disclaimer: parsed.disclaimer || 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n      }\n    }];\n  }\n} catch (e) {}\n\n// Fallback\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content || JSON.stringify(agentOutput, null, 2),\n    findings: [],\n    impression: '',\n    recommendations: [],\n    critical_alerts: parseData.critical_alerts || [],\n    severity_summary: parseData.severity_summary || {},\n    technical_quality: parseData.technical_quality || {},\n    modality: parseData.modality || '',\n    body_part: parseData.body_part || '',\n    sources: 'unknown',\n    disclaimer: 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n  }\n}];"
+          "jsCode": "const agentOutput = $input.first().json;\nconst content = agentOutput.output || agentOutput.text || '';\n\n// Get context from Parse & Classify\nlet parseData = {};\ntry { parseData = $('Parse & Classify Findings').first().json || {}; } catch (e) {}\n\n// Check if this is an error passthrough\nconst isError = agentOutput.error || agentOutput.errorMessage || (!content && !agentOutput.output);\n\nif (isError) {\n  const errMsg = agentOutput.errorMessage || agentOutput.error?.message || 'Analysis encountered an error';\n  return [{\n    json: {\n      type: 'image_analysis',\n      report: 'Analysis could not be completed: ' + errMsg + '. Please try again in a moment.',\n      findings: [{ finding: 'Analysis incomplete due to a processing error', severity: 'INCIDENTAL', confidence: 'LOW', evidence: '', differential: [] }],\n      impression: 'Analysis could not be completed. Please retry.',\n      recommendations: [{ action: 'Retry the analysis after a brief wait', urgency: 'ROUTINE', guideline: '' }],\n      critical_alerts: [],\n      severity_summary: parseData.severity_summary || { critical: 0, significant: 0, incidental: 0 },\n      technical_quality: parseData.technical_quality || {},\n      modality: parseData.modality || '',\n      body_part: parseData.body_part || '',\n      sources: 'none',\n      disclaimer: 'AI-assisted analysis encountered an error. All findings must be verified by a qualified radiologist.'\n    }\n  }];\n}\n\ntry {\n  const textToParse = content || JSON.stringify(agentOutput);\n  const jsonMatch = textToParse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n\n    const findings = Array.isArray(parsed.findings) ? parsed.findings.map(f => {\n      if (typeof f === 'string') return { finding: f, severity: 'SIGNIFICANT', confidence: 'MODERATE', evidence: '', differential: [] };\n      return f;\n    }) : [];\n\n    const recommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations.map(r => {\n      if (typeof r === 'string') return { action: r, urgency: 'ROUTINE', guideline: '' };\n      return r;\n    }) : (parsed.recommendations ? [{ action: String(parsed.recommendations), urgency: 'ROUTINE', guideline: '' }] : []);\n\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || textToParse,\n        findings: findings,\n        impression: parsed.impression || '',\n        recommendations: recommendations,\n        critical_alerts: parsed.critical_alerts || parseData.critical_alerts || [],\n        severity_summary: parsed.severity_summary || parseData.severity_summary || {},\n        technical_quality: parseData.technical_quality || {},\n        modality: parseData.modality || '',\n        body_part: parseData.body_part || '',\n        sources: parsed.sources || 'pinecone',\n        disclaimer: parsed.disclaimer || 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n      }\n    }];\n  }\n} catch (e) {}\n\n// Fallback\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content || JSON.stringify(agentOutput, null, 2),\n    findings: [],\n    impression: '',\n    recommendations: [],\n    critical_alerts: [],\n    severity_summary: parseData.severity_summary || {},\n    technical_quality: parseData.technical_quality || {},\n    modality: parseData.modality || '',\n    body_part: parseData.body_part || '',\n    sources: 'unknown',\n    disclaimer: 'AI-assisted analysis for educational purposes. All findings must be verified by a qualified radiologist.'\n  }\n}];"
         },
         "id": "d3000001-0001-4000-8000-000000000006",
         "name": "Compile Image Report",
@@ -2009,17 +2005,6 @@
           ]
         ]
       },
-      "GPT-4o (Image Report)": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "Image Report Agent",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Image Knowledge Base": {
         "ai_tool": [
           [
@@ -2264,6 +2249,17 @@
             }
           ]
         ]
+      },
+      "GPT-4o-mini (Image Report)": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Image Report Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Abudi  ",
@@ -2272,10 +2268,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-18T23:05:26.599Z",
-        "id": 72,
+        "createdAt": "2026-02-18T23:15:59.436Z",
+        "id": 73,
         "workflowId": "NdkxQCmiJ2XEnjul",
-        "versionId": "0886f806-280e-42a3-b701-642158d7d9e7",
+        "versionId": "36e2066a-6d79-4f24-b92d-1f4a761dfe00",
         "event": "activated",
         "userId": "89cccddd-7d3a-40ba-bc14-3871faafffc8"
       }

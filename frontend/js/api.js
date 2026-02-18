@@ -22,7 +22,12 @@ const API = (() => {
         throw new Error(`Server error (${res.status}): ${text}`);
       }
 
-      return await res.json();
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error('Server returned an invalid response. Please try again.');
+      }
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') {

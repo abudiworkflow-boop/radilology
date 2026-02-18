@@ -62,6 +62,15 @@ const ImageAnalysis = (() => {
     document.getElementById('analysis-impression').textContent = result.impression || '';
     document.getElementById('analysis-recommendations').textContent = result.recommendations || '';
 
+    const sourcesEl = document.getElementById('analysis-sources');
+    if (sourcesEl && result.sources) {
+      const src = result.sources;
+      const label = src.includes('perplexity') ? 'Pinecone KB + Perplexity' : 'Pinecone KB';
+      sourcesEl.textContent = label;
+      sourcesEl.className = 'sources-badge' + (src.includes('perplexity') ? ' dual' : '');
+      sourcesEl.classList.remove('hidden');
+    }
+
     document.getElementById('analysis-results').classList.remove('hidden');
   }
 

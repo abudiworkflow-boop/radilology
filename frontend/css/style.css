@@ -478,6 +478,24 @@ body {
   font-size: 12px;
 }
 
+/* === Sources Badge === */
+.sources-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(15, 76, 129, 0.15);
+}
+
+.sources-badge.dual {
+  background: linear-gradient(135deg, var(--primary-light), #EEF6EE);
+  border-color: rgba(15, 76, 129, 0.2);
+}
+
 .report-content {
   font-family: var(--font-mono);
   font-size: 13px;

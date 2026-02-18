@@ -46,7 +46,7 @@
       "id": "b1000001-0060-4000-8000-000000000002",
       "name": "GPT-4o Vision Analysis",
       "type": "n8n-nodes-base.httpRequest",
-      "position": [500, 0],
+      "position": [400, -200],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
@@ -63,7 +63,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o', max_tokens: 2500, messages: [{ role: 'system', content: 'You are RadAssist, an expert AI radiology assistant. Analyze the provided medical image systematically:\\n1. Identify the type of imaging study and projection/view\\n2. Assess image quality and technical limitations\\n3. Systematically describe all visible anatomical structures\\n4. Identify abnormal findings\\n5. Provide differential diagnoses for abnormalities\\n6. Suggest clinical correlation and follow-up\\n\\nRespond ONLY with a valid JSON object (no markdown, no code fences):\\n{\\n  \"report\": \"EXAM: [modality] [body part]\\\\n\\\\nTECHNIQUE: [view/projection]\\\\n\\\\nFINDINGS:\\\\n[systematic description]\\\\n\\\\nIMPRESSION:\\\\n[numbered key findings]\",\\n  \"findings\": [\"Finding 1\", \"Finding 2\"],\\n  \"impression\": \"Summary of most important findings\",\\n  \"recommendations\": \"Suggested follow-up or clinical correlation\"\\n}\\n\\nDISCLAIMER: This is an AI-assisted analysis for educational purposes only. All findings must be verified by a qualified radiologist.' }, { role: 'user', content: [{ type: 'text', text: 'Analyze this ' + ($json.body.modality || 'X-ray') + ' image of ' + ($json.body.body_part || 'unknown region') + '. Clinical context: ' + ($json.body.clinical_context || 'None provided') }, { type: 'image_url', image_url: { url: $json.body.image, detail: 'high' } }] }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o', max_tokens: 2000, messages: [{ role: 'system', content: 'You are a medical image analysis specialist. Carefully examine the provided medical image and identify ALL visible findings.\\n\\nINSTRUCTIONS:\\n1. Identify imaging modality, projection/view\\n2. Assess image quality and technical factors\\n3. Systematically examine all anatomical structures region by region\\n4. List ALL normal and abnormal findings with precise anatomical locations\\n5. Note any areas of concern requiring detailed analysis\\n\\nRespond ONLY with valid JSON (no markdown, no code fences):\\n{\\n  \"technical_quality\": \"Image quality and positioning assessment\",\\n  \"findings\": [\"Finding 1 with anatomical location\", \"Finding 2\", ...],\\n  \"preliminary_impression\": \"Initial assessment summary\",\\n  \"areas_of_concern\": [\"Area needing detailed analysis\", ...]\\n}\\n\\nBe thorough — identify EVERY visible finding. Comprehensive clinical correlation and evidence-based reporting using curated medical data will follow.' }, { role: 'user', content: [{ type: 'text', text: 'Analyze this ' + ($json.body.modality || 'X-ray') + ' image of ' + ($json.body.body_part || 'unknown region') + '. Clinical context: ' + ($json.body.clinical_context || 'None provided') + '. Identify all visible findings systematically.' }, { type: 'image_url', image_url: { url: $json.body.image, detail: 'high' } }] }] }) }}",
         "options": {
           "timeout": 60000
         }
@@ -72,11 +72,104 @@
     },
     {
       "id": "b1000001-0060-4000-8000-000000000003",
-      "name": "Format Image Response",
+      "name": "Parse Vision Findings",
       "type": "n8n-nodes-base.code",
-      "position": [900, 0],
+      "position": [700, -200],
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || content,\n        findings: parsed.findings || [],\n        impression: parsed.impression || '',\n        recommendations: parsed.recommendations || ''\n      }\n    }];\n  }\n} catch (e) {}\n\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content,\n    findings: [],\n    impression: '',\n    recommendations: ''\n  }\n}];"
+        "jsCode": "const response = $input.first().json;\nconst content = response.choices?.[0]?.message?.content || '';\n\n// Get original request data from webhook\nlet originalBody = {};\ntry {\n  originalBody = $('Master Webhook').first().json.body || {};\n} catch (e) {\n  originalBody = {};\n}\n\nlet visionData = {\n  technical_quality: '',\n  findings: [],\n  preliminary_impression: '',\n  areas_of_concern: []\n};\n\ntry {\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    visionData = JSON.parse(jsonMatch[0]);\n  }\n} catch (e) {}\n\n// Build findings text for the agent\nconst findingsText = Array.isArray(visionData.findings)\n  ? visionData.findings.map((f, i) => `${i + 1}. ${f}`).join('\\n')\n  : String(visionData.findings || content);\n\nconst concernsText = Array.isArray(visionData.areas_of_concern)\n  ? visionData.areas_of_concern.join(', ')\n  : String(visionData.areas_of_concern || '');\n\nreturn [{\n  json: {\n    vision_analysis: content,\n    technical_quality: visionData.technical_quality || '',\n    findings_text: findingsText,\n    preliminary_impression: visionData.preliminary_impression || '',\n    areas_of_concern: concernsText,\n    modality: originalBody.modality || 'xray',\n    body_part: originalBody.body_part || '',\n    clinical_context: originalBody.clinical_context || ''\n  }\n}];"
+      },
+      "typeVersion": 2
+    },
+
+    {
+      "id": "d3000001-0001-4000-8000-000000000001",
+      "name": "Image Report Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [1000, -200],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Medical image analysis — {{ $json.modality || 'X-ray' }} of {{ $json.body_part || 'unknown region' }}\n\nTechnical Quality: {{ $json.technical_quality || 'Not assessed' }}\n\nVision Findings:\n{{ $json.findings_text || 'No findings extracted' }}\n\nPreliminary Impression: {{ $json.preliminary_impression || 'Not available' }}\n\nAreas of Concern: {{ $json.areas_of_concern || 'None specified' }}\n\nClinical Context: {{ $json.clinical_context || 'None provided' }}\n\nINSTRUCTIONS:\nStep 1: Search the Radiology Knowledge Base (Pinecone) for EACH identified finding. Look up pathology descriptions, differential diagnoses, diagnostic criteria, imaging characteristics, and clinical significance.\nStep 2: Use Perplexity Web Search to verify clinical accuracy, find latest guidelines, or get additional context for significant or complex findings.\nStep 3: Synthesize the vision findings with curated knowledge base data and supplementary research into a comprehensive, precise, evidence-backed medical radiology report.\n\nYour response MUST be a valid JSON object (no markdown, no code fences):\n{\n  \"report\": \"EXAM: [modality] [body part]\\n\\nCLINICAL INDICATION: [context]\\n\\nTECHNIQUE: [view/projection]\\n\\nCOMPARISON: None available.\\n\\nFINDINGS:\\n[Detailed systematic description with clinical correlation from knowledge base]\\n\\nIMPRESSION:\\n1. [Most significant finding with evidence-based assessment]\\n2. [Secondary findings]\",\n  \"findings\": [\"Finding 1 with clinical significance from KB\", \"Finding 2\"],\n  \"impression\": \"Evidence-based clinical impression with differential diagnoses ranked by probability\",\n  \"recommendations\": \"Guideline-based follow-up recommendations\",\n  \"sources\": \"pinecone\" or \"pinecone+perplexity\"\n}",
+        "options": {
+          "systemMessage": "You are RadAssist, an expert AI radiology reporting system that produces comprehensive, precise medical radiology reports backed by curated medical data.\n\nDATA SOURCE PRIORITY:\n1. PRIMARY: Always search the Radiology Knowledge Base (Pinecone) FIRST for EVERY finding identified in the image. This contains 3,281 curated, verified radiology documents covering pathologies, anatomy, diagnostic criteria, report templates, and clinical guidelines.\n2. SUPPLEMENTARY: Use Perplexity Web Search when:\n   - The knowledge base has limited information on a finding\n   - You need to verify or cross-reference diagnoses\n   - Latest clinical guidelines or research are relevant\n   - Additional clinical context would strengthen the report\n\nCRITICAL RULES:\n- NEVER rely solely on general AI knowledge — always back findings with curated data from your tools\n- Search Pinecone for EACH individual finding, not just one general search\n- Use precise medical terminology (ACR/RSNA standard)\n- Include evidence-based differential diagnoses ranked by probability\n- Reference established diagnostic criteria when applicable (e.g., Fleischner criteria for pulmonary nodules, BI-RADS for breast imaging)\n- Recommendations must be specific, guideline-based, and clinically actionable\n- Include clinical correlation with patient history when available\n\nREPORT QUALITY:\n- Systematic region-by-region description\n- Specific measurements and descriptions where applicable\n- Normal structures explicitly stated as normal\n- Abnormalities described with size, location, morphology, and clinical significance\n- Impression summarizes key findings with confidence levels\n\nYour response MUST be a valid JSON object with: report, findings[], impression, recommendations, sources\n\nDISCLAIMER: Always note that this is AI-assisted analysis for educational purposes requiring verification by a qualified radiologist."
+        }
+      },
+      "typeVersion": 1.9
+    },
+    {
+      "id": "d3000001-0001-4000-8000-000000000002",
+      "name": "GPT-4o (Image Report)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [900, -440],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "options": {}
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "d3000001-0001-4000-8000-000000000003",
+      "name": "Image Knowledge Base",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [1100, -440],
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "radiology_image_knowledge_base",
+        "toolDescription": "PRIMARY data source for image analysis. Search the curated radiology knowledge base containing 3,281 documents of medical imaging findings, pathology descriptions, diagnostic criteria, anatomy references, and clinical guidelines. Search this FIRST for every finding identified in the image. Use specific finding names as search queries.",
+        "pineconeIndex": {
+          "__rl": true,
+          "mode": "list",
+          "value": "radiology-assistant",
+          "cachedResultName": "radiology-assistant"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "typeVersion": 1.3
+    },
+    {
+      "id": "d3000001-0001-4000-8000-000000000004",
+      "name": "Image Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [1100, -640],
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "d3000001-0001-4000-8000-000000000005",
+      "name": "Perplexity Search (Image)",
+      "type": "n8n-nodes-base.perplexityTool",
+      "position": [1300, -440],
+      "parameters": {
+        "model": "sonar-pro",
+        "messages": {
+          "message": [
+            {
+              "content": "You are a medical imaging research assistant. Search for the latest peer-reviewed radiology findings, diagnostic criteria, clinical guidelines, and evidence-based imaging interpretations. Provide clinically accurate, well-cited responses.",
+              "role": "system"
+            },
+            {
+              "content": "={{ $fromAI('query', 'The specific radiology finding or clinical question to research for the image analysis report') }}",
+              "role": "user"
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d3000001-0001-4000-8000-000000000006",
+      "name": "Compile Image Report",
+      "type": "n8n-nodes-base.code",
+      "position": [1300, -200],
+      "parameters": {
+        "jsCode": "const agentOutput = $input.first().json;\nconst content = agentOutput.output || agentOutput.text || '';\n\ntry {\n  const textToParse = content || JSON.stringify(agentOutput);\n  const jsonMatch = textToParse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    return [{\n      json: {\n        type: 'image_analysis',\n        report: parsed.report || textToParse,\n        findings: Array.isArray(parsed.findings) ? parsed.findings : [],\n        impression: parsed.impression || '',\n        recommendations: parsed.recommendations || '',\n        sources: parsed.sources || 'pinecone'\n      }\n    }];\n  }\n} catch (e) {}\n\nreturn [{\n  json: {\n    type: 'image_analysis',\n    report: content || JSON.stringify(agentOutput, null, 2),\n    findings: [],\n    impression: '',\n    recommendations: '',\n    sources: 'unknown'\n  }\n}];"
       },
       "typeVersion": 2
     },
@@ -338,8 +431,8 @@
       "position": [-500, -100],
       "parameters": {
         "width": 420,
-        "height": 620,
-        "content": "## RadAssist v2 — Unified Master Workflow\n\n**Single Endpoint Architecture**\nPOST /webhook/radiology\n\n### Flow:\n1. Master Webhook receives ALL requests\n2. IF check: image present? → GPT-4o Vision\n3. Else: Text Classifier routes to branch\n4. Single Send Response returns result\n\n### 3 Branches:\n- **Image Analysis** → GPT-4o Vision (HTTP Request)\n- **Chat** → Unified AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Report** → Report AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Fallback** → Error message\n\n### Data Sources:\n- Pinecone: 3,281 curated radiology vectors (PRIMARY)\n- Perplexity sonar-pro: External web search (SUPPLEMENTARY)\n\n### Request Body:\n{ message, type?, image?, modality?, system?, findings?, body_part?, term?, clinical_context? }\n\n### Setup:\n1. Add OpenAI credentials\n2. Add Pinecone credentials\n3. Add Perplexity credentials\n4. Activate workflow"
+        "height": 720,
+        "content": "## RadAssist v2.1 — Enhanced Image Analysis\n\n**Single Endpoint Architecture**\nPOST /webhook/radiology\n\n### Flow:\n1. Master Webhook receives ALL requests\n2. IF check: image present? → Two-Step Vision Pipeline\n3. Else: Text Classifier routes to branch\n4. Single Send Response returns result\n\n### 3 Branches:\n- **Image Analysis** → GPT-4o Vision (extract findings) → AI Agent (Pinecone + Perplexity enrichment) → Comprehensive Report\n- **Chat** → Unified AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Report** → Report AI Agent (Pinecone PRIMARY + Perplexity SUPPLEMENTARY)\n- **Fallback** → Error message\n\n### Data Sources (ALL branches):\n- Pinecone: 3,281 curated radiology vectors (PRIMARY)\n- Perplexity sonar-pro: External web search (SUPPLEMENTARY)\n\n### Request Body:\n{ message, type?, image?, modality?, system?, findings?, body_part?, term?, clinical_context? }\n\n### Setup:\n1. Add OpenAI credentials\n2. Add Pinecone credentials\n3. Add Perplexity credentials\n4. Activate workflow"
       },
       "typeVersion": 1
     },
@@ -359,11 +452,11 @@
       "id": "b1000001-9006-4000-8000-000000000001",
       "name": "Image Analysis Branch",
       "type": "n8n-nodes-base.stickyNote",
-      "position": [320, -120],
+      "position": [220, -720],
       "parameters": {
-        "width": 700,
-        "height": 200,
-        "content": "### Branch 0: Image Analysis (GPT-4o Vision)\nHTTP Request to OpenAI Chat Completions with image_url\nReturns: { type, report, findings, impression, recommendations }"
+        "width": 1200,
+        "height": 300,
+        "content": "### Branch 0: Image Analysis — Two-Step Pipeline\n\n**Step 1: Vision** → GPT-4o Vision extracts all visible findings from the image\n**Step 2: Agent** → AI Agent enriches findings with:\n  - Pinecone KB (PRIMARY, topK=10) — curated 3,281 radiology vectors\n  - Perplexity sonar-pro (SUPPLEMENTARY) — clinical verification\n\nReturns: { type, report, findings[], impression, recommendations, sources }\n\nThis produces comprehensive, evidence-backed medical reports — not generic AI output."
       },
       "typeVersion": 1
     },
@@ -426,14 +519,80 @@
       "main": [
         [
           {
-            "node": "Format Image Response",
+            "node": "Parse Vision Findings",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Image Response": {
+    "Parse Vision Findings": {
+      "main": [
+        [
+          {
+            "node": "Image Report Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o (Image Report)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Image Report Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Knowledge Base": {
+      "ai_tool": [
+        [
+          {
+            "node": "Image Report Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Image Knowledge Base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Search (Image)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Image Report Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Report Agent": {
+      "main": [
+        [
+          {
+            "node": "Compile Image Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Image Report": {
       "main": [
         [
           {
@@ -444,6 +603,7 @@
         ]
       ]
     },
+
     "Classifier Model": {
       "ai_languageModel": [
         [

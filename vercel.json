@@ -1,12 +1,11 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "",
+  "outputDirectory": "frontend",
+  "rewrites": [
     {
-      "src": "frontend/**",
-      "use": "@vercel/static"
+      "source": "/api/radiology",
+      "destination": "https://abudii.app.n8n.cloud/webhook/radiology"
     }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "frontend/$1" }
   ]
 }

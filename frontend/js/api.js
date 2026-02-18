@@ -1,6 +1,9 @@
 // n8n Webhook API communication layer
 const API = (() => {
-  const BASE_URL = 'https://abudii.app.n8n.cloud/webhook';
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const ENDPOINT = isLocal
+    ? 'https://abudii.app.n8n.cloud/webhook/radiology'
+    : '/api/radiology';
   const TIMEOUT = 60000;
 
   async function request(body, timeout) {
@@ -8,7 +11,7 @@ const API = (() => {
     const timer = setTimeout(() => controller.abort(), timeout || TIMEOUT);
 
     try {
-      const res = await fetch(`${BASE_URL}/radiology`, {
+      const res = await fetch(ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

@@ -25,6 +25,8 @@ const Chat = (() => {
     loadHistory();
   }
 
+  const GREETINGS = /^(hi|hello|hey|hiya|howdy|sup|yo|good\s*(morning|afternoon|evening|day)|what'?s?\s*up|greetings)[\s!?.]*$/i;
+
   function sendMessage() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
@@ -35,6 +37,21 @@ const Chat = (() => {
 
     const quickActions = document.getElementById('chat-quick-actions');
     if (quickActions) quickActions.classList.add('hidden');
+
+    if (GREETINGS.test(text)) {
+      const greeting = 'Hello! I\'m RadAssist, your AI radiology assistant. You can:\n\n' +
+        '- Ask about any **radiology term** (e.g. "pneumothorax")\n' +
+        '- Ask **clinical questions** (e.g. "What causes pleural effusion?")\n' +
+        '- Request a **report** using the Report Builder tab\n' +
+        '- **Upload an X-ray** in the Image Analysis tab\n\n' +
+        'Try typing a condition name or asking a question!';
+      appendMessage('assistant', greeting);
+      history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: greeting });
+      trimHistory();
+      saveHistory();
+      return;
+    }
 
     const typingEl = showTypingIndicator();
 
